@@ -16,7 +16,7 @@ export default defineConfig({
   },
   build: {
     outDir: 'web-dist',
-    emptyOutDir: true,
+    emptyOutDir: false,
     assetsInlineLimit: 0,
   },
 })

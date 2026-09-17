@@ -6,10 +6,14 @@
  */
 import { execSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
+
+const root = fileURLToPath(new URL('..', import.meta.url));
+const git = `git -c safe.directory=${root.replace(/\\/g, '/')}`;
 
 function sh(cmd) {
   try {
-    return execSync(cmd, { encoding: 'utf8' }).trim();
+    return execSync(cmd, { encoding: 'utf8', cwd: root }).trim();
   } catch {
     return '';
   }
@@ -20,8 +24,8 @@ const [major, minor] = pkg.version.split('.');
 const baseTag = `vbase-${major}.${minor}`;
 
 let patch = 0;
-if (sh(`git tag --list "${baseTag}"`) === baseTag) {
-  patch = parseInt(sh(`git rev-list --count ${baseTag}..HEAD`) || '0', 10);
+if (sh(`${git} tag --list "${baseTag}"`) === baseTag) {
+  patch = parseInt(sh(`${git} rev-list --count ${baseTag}..HEAD`) || '0', 10);
 }
 
 process.stdout.write(`${major}.${minor}.${patch}`);

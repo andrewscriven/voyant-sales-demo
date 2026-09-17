@@ -1,6 +1,6 @@
 {
   "name": "voyant-sales-demo",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Voyant Studios sales demo hub",
   "author": "Voyant Studios",
   "repository": {
@@ -58,22 +58,29 @@
       "target": [
         {
           "target": "msi",
-          "arch": ["x64"]
+          "arch": [
+            "x64"
+          ]
         }
       ],
       "icon": "public/icon.ico",
       "sign": "./scripts/sign-safenet.js",
-      "signingHashAlgorithms": ["sha256"],
+      "signingHashAlgorithms": [
+        "sha256"
+      ],
       "publisherName": "CC Interactive Design, Inc"
     },
     "msi": {
       "artifactName": "Voyant-Sales-Demo.msi",
       "upgradeCode": "7F3A9C21-8B4E-4D16-A902-C1E5B7A84F20",
-      "additionalWixArgs": ["-sval"],
+      "additionalWixArgs": [
+        "-sval"
+      ],
       "warningsAsErrors": false,
       "oneClick": true,
       "perMachine": true,
       "runAfterFinish": true
-    }
+    },
+    "buildVersion": "1.0.1"
   }
 }
