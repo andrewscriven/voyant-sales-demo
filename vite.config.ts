@@ -15,7 +15,7 @@ export default defineConfig({
     host: '127.0.0.1',
   },
   build: {
-    outDir: 'dist',
+    outDir: 'web-dist',
     emptyOutDir: true,
     assetsInlineLimit: 0,
   },

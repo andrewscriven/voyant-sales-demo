@@ -15,7 +15,7 @@ function userDataPath() {
 }
 
 function appIcon() {
-  const packed = path.join(__dirname, '../dist/icon.ico');
+  const packed = path.join(__dirname, '../web-dist/icon.ico');
   const loose = path.join(__dirname, '../public/icon.ico');
   if (fs.existsSync(packed)) return packed;
   if (fs.existsSync(loose)) return loose;
@@ -49,7 +49,7 @@ function createWindow() {
     const devServerUrl = process.env.VITE_DEV_SERVER_URL || 'http://localhost:3002';
     mainWindow.loadURL(devServerUrl);
   } else {
-    mainWindow.loadFile(path.join(__dirname, '../dist/index.html'));
+    mainWindow.loadFile(path.join(__dirname, '../web-dist/index.html'));
   }
 
   mainWindow.webContents.on('before-input-event', (event, input) => {

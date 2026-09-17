@@ -106,7 +106,9 @@ export function LaunchModal({ prompt, busy, onClose, onBrowse, onLaunch, note }:
               type="button"
               className="launch-modal-btn launch-modal-btn--primary"
               disabled={busy}
-              onClick={() => void onLaunch(pickedPath)}
+              onClick={() => {
+                if (pickedPath) void onLaunch(pickedPath);
+              }}
             >
               {busy ? 'Launching…' : 'Launch'}
             </button>

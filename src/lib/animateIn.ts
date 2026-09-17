@@ -23,7 +23,7 @@ export function animateStaggerIn(els: ArrayLike<Element> | Element | null) {
     ? []
     : els instanceof Element
       ? [els]
-      : [...els].filter((el): el is Element => el instanceof Element);
+      : Array.from(els).filter((el): el is Element => el instanceof Element);
   if (!list.length) return;
 
   gsap.killTweensOf(list);

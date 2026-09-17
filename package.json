@@ -35,7 +35,7 @@
     "@vitejs/plugin-react": "^4.0.0",
     "electron": "^32.2.7",
     "electron-builder": "^24.13.3",
-    "fs-extra": "^11.4.0",
+    "fs-extra": "^11.2.0",
     "png-to-ico": "^2.1.8",
     "sharp": "^0.33.5",
     "typescript": "^5.0.2",
@@ -49,7 +49,7 @@
       "output": "dist-electron"
     },
     "files": [
-      "dist/**/*",
+      "web-dist/**/*",
       "electron/**/*",
       "shared/**/*",
       "package.json"
@@ -58,21 +58,19 @@
       "target": [
         {
           "target": "msi",
-          "arch": [
-            "x64"
-          ]
+          "arch": ["x64"]
         }
       ],
       "icon": "public/icon.ico",
       "sign": "./scripts/sign-safenet.js",
-      "signingHashAlgorithms": [
-        "sha256"
-      ],
+      "signingHashAlgorithms": ["sha256"],
       "publisherName": "CC Interactive Design, Inc"
     },
     "msi": {
       "artifactName": "Voyant-Sales-Demo.msi",
       "upgradeCode": "7F3A9C21-8B4E-4D16-A902-C1E5B7A84F20",
+      "additionalWixArgs": ["-sval"],
+      "warningsAsErrors": false,
       "oneClick": true,
       "perMachine": true,
       "runAfterFinish": true
