@@ -1,0 +1,21 @@
+.page-stage {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+
+.page-layer {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.page-layer--out {
+  z-index: 2;
+  pointer-events: none;
+}
+
+.page-layer--in {
+  z-index: 1;
+}

@@ -1,0 +1,81 @@
+{
+  "name": "voyant-sales-demo",
+  "version": "1.0.0",
+  "description": "Voyant Studios sales demo hub",
+  "author": "Voyant Studios",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/andrewscriven/voyant-sales-demo.git"
+  },
+  "main": "electron/main.cjs",
+  "scripts": {
+    "dev": "vite",
+    "start": "node scripts/dev-electron.js",
+    "preview": "vite preview",
+    "build:web": "tsc && vite build",
+    "icon": "node scripts/generate-icon.js",
+    "version:compute": "node scripts/compute-version.mjs",
+    "build:msi": "node scripts/build-msi.js --local --skip-sign",
+    "release:msi": "node scripts/release-msi.js",
+    "release:msi:upload": "node scripts/release-msi.js --upload",
+    "release:minor": "node scripts/bump-version.js minor && node scripts/build-msi.js",
+    "release:major": "node scripts/bump-version.js major && node scripts/build-msi.js"
+  },
+  "dependencies": {
+    "@fontsource/figtree": "^5.3.0",
+    "@fontsource/inter": "^5.3.0",
+    "gsap": "^3.12.5",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "react-router-dom": "^7.9.5"
+  },
+  "devDependencies": {
+    "@types/react": "^18.2.0",
+    "@types/react-dom": "^18.2.0",
+    "@vitejs/plugin-react": "^4.0.0",
+    "electron": "^32.2.7",
+    "electron-builder": "^24.13.3",
+    "fs-extra": "^11.4.0",
+    "png-to-ico": "^2.1.8",
+    "sharp": "^0.33.5",
+    "typescript": "^5.0.2",
+    "vite": "^4.4.5"
+  },
+  "build": {
+    "appId": "com.voyantstudios.sales-demo",
+    "productName": "Voyant Sales Demo",
+    "copyright": "Copyright © Voyant Studios",
+    "directories": {
+      "output": "dist-electron"
+    },
+    "files": [
+      "dist/**/*",
+      "electron/**/*",
+      "shared/**/*",
+      "package.json"
+    ],
+    "win": {
+      "target": [
+        {
+          "target": "msi",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "icon": "public/icon.ico",
+      "sign": "./scripts/sign-safenet.js",
+      "signingHashAlgorithms": [
+        "sha256"
+      ],
+      "publisherName": "CC Interactive Design, Inc"
+    },
+    "msi": {
+      "artifactName": "Voyant-Sales-Demo.msi",
+      "upgradeCode": "7F3A9C21-8B4E-4D16-A902-C1E5B7A84F20",
+      "oneClick": true,
+      "perMachine": true,
+      "runAfterFinish": true
+    }
+  }
+}

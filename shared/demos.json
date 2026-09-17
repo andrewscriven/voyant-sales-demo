@@ -1,0 +1,199 @@
+{
+  "categories": [
+    { "id": "tours", "label": "3D Solution Tours" },
+    { "id": "case-studies", "label": "Case Studies" },
+    { "id": "assessments", "label": "Assessments & Calculators" },
+    { "id": "vr", "label": "Virtual Reality" }
+  ],
+  "demos": [
+    {
+      "id": "emerson-chemical",
+      "label": "Emerson Chemical Solutions",
+      "category": "tours",
+      "kind": "exe",
+      "path": "C:\\Program Files (x86)\\CC Interactive Design\\Emerson Chemical Solutions\\Emerson Chemical Solutions.exe"
+    },
+    {
+      "id": "dgs-networking",
+      "label": "DGS Networking",
+      "category": "tours",
+      "kind": "exe",
+      "path": "C:\\Program Files (x86)\\CC Interactive Design, Inc\\DGS Networking\\DGS Networking.exe"
+    },
+    {
+      "id": "portfolio-navigator",
+      "label": "Portfolio Navigator",
+      "category": "tours",
+      "kind": "exe",
+      "path": "C:\\Program Files (x86)\\CC Interactive Design Inc\\Navigator\\Portfolio Navigator.exe"
+    },
+    {
+      "id": "swi-explorer",
+      "label": "SWI Explorer",
+      "category": "tours",
+      "kind": "exe",
+      "path": "C:\\Program Files\\swi-explorer\\SWI Explorer.exe"
+    },
+    {
+      "id": "critical-power",
+      "label": "Critical Power Solutions",
+      "category": "tours",
+      "kind": "exe",
+      "path": "C:\\Program Files\\Critical Power Solutions\\Critical Power Solutions.exe"
+    },
+    {
+      "id": "southern-states",
+      "label": "Southern States Grid Security",
+      "category": "tours",
+      "kind": "exe",
+      "path": "C:\\Program Files (x86)\\CC Interactive Design\\Southern States Grid Security\\Southern States Grid Security.exe"
+    },
+    {
+      "id": "kassel",
+      "label": "Kassel Site Explorer",
+      "category": "tours",
+      "kind": "exe",
+      "path": "C:\\docs\\examples\\examples\\kassel_site_explorer_111017\\Kassel.exe"
+    },
+    {
+      "id": "gsixtream",
+      "label": "GSIXtream",
+      "category": "tours",
+      "kind": "exe",
+      "path": "C:\\docs\\examples\\examples\\gsix-1024\\gsixtream.exe"
+    },
+    {
+      "id": "utilities-solutions",
+      "label": "Utilities Solutions",
+      "category": "tours",
+      "kind": "exe",
+      "path": "C:\\Program Files (x86)\\Voyant Studios\\Utilities Solutions\\Utilities Solutions.exe"
+    },
+    {
+      "id": "healthcare-analytics",
+      "label": "Healthcare Analytics",
+      "category": "tours",
+      "kind": "exe",
+      "path": "C:\\docs\\examples\\examples\\healthcare_analytics_17\\HealthcareAnalyticsSolutionsExplorer.exe"
+    },
+    {
+      "id": "onshore-wind",
+      "label": "2MW Onshore Wind",
+      "category": "tours",
+      "kind": "exe",
+      "path": "C:\\docs\\examples\\examples\\onshore_wind_2MW\\2MW-Explorer.exe"
+    },
+    {
+      "id": "ge-additive",
+      "label": "GE Additive",
+      "category": "tours",
+      "kind": "exe",
+      "path": "C:\\docs\\examples\\examples\\ge_additive-1048\\geadditive.exe"
+    },
+    {
+      "id": "emerson-mining",
+      "label": "Emerson Mining Case Studies",
+      "category": "case-studies",
+      "kind": "exe",
+      "path": "C:\\Program Files (x86)\\CC Interactive Design\\Emerson Mining Case Studies\\Emerson Mining Case Studies.exe"
+    },
+    {
+      "id": "emerson-lng",
+      "label": "Emerson LNG Case Studies",
+      "category": "case-studies",
+      "kind": "exe",
+      "path": "C:\\Program Files (x86)\\CC Interactive Design\\Emerson LNG Case Studies\\Emerson LNG Case Studies.exe"
+    },
+    {
+      "id": "emerson-sd",
+      "label": "Emerson S&D Case Studies",
+      "category": "case-studies",
+      "kind": "exe",
+      "path": "C:\\Program Files (x86)\\CC Interactive Design\\Emerson S&D Case Studies\\Emerson S&D Case Studies.exe"
+    },
+    {
+      "id": "ap1000",
+      "label": "AP1000 Case Studies",
+      "category": "case-studies",
+      "kind": "exe",
+      "path": "C:\\Program Files (x86)\\CC Interactive Design Inc\\AP1000 Case Studies\\AP1000 Case Studies.exe"
+    },
+    {
+      "id": "biosave-calc",
+      "label": "BioSave Calculator",
+      "category": "assessments",
+      "kind": "exe",
+      "path": "C:\\Program Files (x86)\\CC Interactive Design Inc\\Launchpad\\Launchpad\\apps\\bio_save_calc_18\\BioSaveCalc.exe"
+    },
+    {
+      "id": "reservoir",
+      "label": "GE Reservoir",
+      "category": "assessments",
+      "kind": "exe",
+      "path": "C:\\docs\\examples\\examples\\ge_reservoir_ex_26\\Reservoir.exe"
+    },
+    {
+      "id": "cytiva-figurate",
+      "label": "Cytiva Figurate",
+      "category": "assessments",
+      "kind": "url",
+      "url": "https://figurate.app.cytiva.com/index.html"
+    },
+    {
+      "id": "statcom",
+      "label": "STATCOM Slideshow",
+      "category": "assessments",
+      "kind": "exe",
+      "path": "C:\\docs\\examples\\Statcom\\Slideshow.exe"
+    },
+    {
+      "id": "ge-multilin",
+      "label": "GE Multilin Selector",
+      "category": "assessments",
+      "kind": "url",
+      "url": "https://www.gevernova.com/grid-solutions/multilin/selector/"
+    },
+    {
+      "id": "fibro-explorer",
+      "label": "Fibro Explorer",
+      "category": "assessments",
+      "kind": "exe",
+      "path": "C:\\Program Files (x86)\\CC Interactive Design Inc\\Launchpad\\Launchpad\\apps\\fibro-explorer-001\\FibroExplorer.exe"
+    },
+    {
+      "id": "greengas",
+      "label": "Green Gas",
+      "category": "assessments",
+      "kind": "exe",
+      "path": "C:\\docs\\examples\\examples\\green-gas-1802\\Greengas.exe"
+    },
+    {
+      "id": "vr-hvdc",
+      "label": "HVDC VR",
+      "category": "vr",
+      "kind": "exe",
+      "path": "C:\\docs\\examples\\VR_HVDC_DEMO\\videoplayer.exe"
+    },
+    {
+      "id": "vr-grid-mod",
+      "label": "Grid Modernization VR",
+      "category": "vr",
+      "kind": "exe",
+      "path": "C:\\docs\\examples\\examples\\video_apps\\GridModernizationVR_1046\\videoplayer.exe"
+    },
+    {
+      "id": "vr-dead-tank",
+      "label": "Dead Tank VR",
+      "category": "vr",
+      "kind": "exe",
+      "path": "C:\\docs\\examples\\Dead Tank VR\\videoplayer.exe"
+    },
+    {
+      "id": "vr-underground",
+      "label": "Underground Network VR",
+      "category": "vr",
+      "kind": "exe",
+      "path": "C:\\docs\\examples\\examples\\video_apps\\UndergroundNetworkS_954\\videoplayer.exe"
+    }
+  ]
+}

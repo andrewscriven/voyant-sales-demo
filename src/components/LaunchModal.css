@@ -1,0 +1,128 @@
+.launch-modal-scrim {
+  position: absolute;
+  inset: 0;
+  z-index: 2000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.2rem;
+  background: rgb(7 6 15 / 0.62);
+}
+
+.launch-modal {
+  width: min(28rem, 100%);
+  padding: 0.85rem 0.95rem 0.9rem;
+  border-radius: 0.4rem;
+  border: var(--hairline) solid rgb(62 190 254 / 0.35);
+  background:
+    linear-gradient(180deg, rgb(28 26 52 / 0.96), rgb(13 12 29 / 0.98));
+  box-shadow:
+    0 0 0.18rem rgb(62 190 254 / 0.28),
+    0 0.6rem 1.8rem rgb(0 0 0 / 0.45);
+  color: #fafafa;
+}
+
+.launch-modal h2 {
+  margin: 0 0 0.35rem;
+  font-size: 0.85rem;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  text-align: left;
+}
+
+.launch-modal p {
+  margin: 0 0 0.55rem;
+  color: #a9b1c3;
+  font-size: 0.48rem;
+  line-height: 1.45;
+}
+
+.launch-modal-note {
+  color: #7ad8ff !important;
+}
+
+.launch-modal-path {
+  display: flex;
+  flex-direction: column;
+  gap: 0.18rem;
+  margin: 0 0 0.7rem;
+}
+
+.launch-modal-path span {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  color: #c5cbe0;
+  font-size: 0.36rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.launch-modal-path span em {
+  font-style: normal;
+  letter-spacing: 0.06em;
+  color: #ff8b93;
+}
+
+.launch-modal-path-value {
+  margin: 0;
+  width: 100%;
+  box-sizing: border-box;
+  padding: 0.32rem 0.4rem;
+  border: var(--hairline) solid rgb(255 255 255 / 0.16);
+  border-radius: 0.22rem;
+  background: rgb(7 6 15 / 0.72);
+  color: #fafafa;
+  font: inherit;
+  font-size: 0.42rem;
+  line-height: 1.4;
+  word-break: break-all;
+  user-select: text;
+}
+
+.launch-modal-path-value.is-bad {
+  border-color: rgb(255 92 102 / 0.7);
+  background: rgb(72 14 22 / 0.55);
+  color: #ffc4c8;
+}
+
+.launch-modal-path-value.is-ok {
+  border-color: rgb(62 190 254 / 0.55);
+  background: rgb(7 6 15 / 0.72);
+  color: #fafafa;
+}
+
+.launch-modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.35rem;
+}
+
+.launch-modal-btn {
+  appearance: none;
+  min-width: 3.8rem;
+  padding: 0.28rem 0.55rem;
+  border: var(--hairline) solid rgb(255 255 255 / 0.16);
+  border-radius: 0.22rem;
+  background: rgb(255 255 255 / 0.06);
+  color: #fafafa;
+  font: inherit;
+  font-size: 0.42rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.launch-modal-btn:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.launch-modal-btn--primary {
+  border-color: rgb(62 190 254 / 0.55);
+  background: rgb(50 130 255 / 0.2);
+}
+
+.launch-modal-btn:hover:not(:disabled) {
+  background: rgb(62 190 254 / 0.16);
+}

@@ -1,0 +1,18 @@
+node_modules/
+dist/
+dist-electron/
+release-msi/
+temp-icons/
+*.log
+.env
+.env.local
+.DS_Store
+Thumbs.db
+
+# large local media copied from the website repo
+public/videos/
+
+# source art, not part of the shipped hub
+.ae/
+.psd/
+blender/

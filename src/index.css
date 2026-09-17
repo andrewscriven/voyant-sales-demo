@@ -1,0 +1,36 @@
+:root {
+  --color-primary: #3ebefe;
+  --color-surface: #0d0a1b;
+  --color-surface-alt: #16152b;
+  --app-nav-size: 1.5rem;
+  --hairline: 0.06rem;
+}
+
+html {
+  font-size: 1.6svw;
+}
+
+* {
+  box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
+}
+
+html,
+body,
+#root {
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  overflow: hidden;
+  background: #0d0a1b;
+}
+
+body {
+  font-family: Figtree, 'Segoe UI', sans-serif;
+  color: #fafafa;
+}
+
+button,
+select {
+  font-family: inherit;
+}

@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Voyant Sales Demo - Download</title>
+  <meta name="robots" content="noindex, nofollow">
+  <style>
+    :root {
+      --bg: #0d0a1b;
+      --panel: #16152b;
+      --text: #fafafa;
+      --muted: #a9b1c3;
+      --accent: #3ebefe;
+      --error: #ff8b93;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+      background: var(--bg);
+      color: var(--text);
+      font-family: Figtree, "Segoe UI", sans-serif;
+    }
+    .card {
+      width: 100%;
+      max-width: 420px;
+      padding: 36px 28px;
+      border: 1px solid rgb(62 190 254 / 0.28);
+      border-radius: 12px;
+      background: var(--panel);
+    }
+    h1 { margin: 0 0 8px; font-size: 26px; }
+    .sub { margin: 0 0 24px; color: var(--muted); font-size: 14px; }
+    label { display: block; margin: 0 0 12px; color: var(--muted); font-size: 13px; }
+    input {
+      width: 100%;
+      margin-top: 6px;
+      padding: 11px 12px;
+      border: 1px solid rgb(255 255 255 / 0.14);
+      border-radius: 8px;
+      background: rgb(7 6 15 / 0.72);
+      color: var(--text);
+      font: inherit;
+    }
+    button {
+      width: 100%;
+      margin-top: 8px;
+      padding: 12px;
+      border: 0;
+      border-radius: 8px;
+      background: #3282ff;
+      color: white;
+      font: inherit;
+      font-weight: 700;
+      cursor: pointer;
+    }
+    button:disabled { opacity: 0.55; cursor: default; }
+    .error { min-height: 18px; margin-top: 10px; color: var(--error); font-size: 13px; }
+    .version { margin: 0 0 18px; color: var(--accent); font-weight: 700; }
+    .hidden { display: none !important; }
+    .hint { margin-top: 18px; color: var(--muted); font-size: 12px; }
+  </style>
+</head>
+<body>
+  <div class="card" id="gate">
+    <h1>Voyant Sales Demo</h1>
+    <p class="sub">Enter your credentials to continue</p>
+    <form id="gate-form" autocomplete="on">
+      <label>Username <input id="username" type="text" autocomplete="username" required></label>
+      <label>Password <input id="password" type="password" autocomplete="current-password" required></label>
+      <button type="submit">Continue</button>
+      <div class="error" id="error" role="alert"></div>
+    </form>
+    <p class="hint">Credentials provided by Voyant Studios.</p>
+  </div>
+
+  <div class="card hidden" id="panel">
+    <h1>Voyant Sales Demo</h1>
+    <p class="sub">Ready to download</p>
+    <p class="version">Version __VERSION__</p>
+    <p>__MSI_NAME__ · __MSI_SIZE__ · Windows 10 &amp; 11</p>
+    <button type="button" id="download-button" disabled>Preparing download…</button>
+    <div class="error" id="status"></div>
+    <button type="button" class="hidden" id="new-link-button">Get a new link</button>
+    <p class="hint">Digitally signed. The installer stays private; this page only receives a short-lived download link.</p>
+  </div>
+
+  <script>
+    const ANALYTICS_API_BASE_URL = 'https://analytics.voyantstudios.com/api';
+    const CLIENT_DB_NAME = 'voyant';
+    const gate = document.getElementById('gate');
+    const panel = document.getElementById('panel');
+    const form = document.getElementById('gate-form');
+    const errorEl = document.getElementById('error');
+    const statusEl = document.getElementById('status');
+    const downloadButton = document.getElementById('download-button');
+    const newLinkButton = document.getElementById('new-link-button');
+    let signedDownloadUrl = '';
+
+    async function requestJson(url, options = {}) {
+      const response = await fetch(url, {
+        ...options,
+        headers: { 'Content-Type': 'application/json', ...(options.headers || {}) },
+        credentials: 'omit',
+      });
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(payload.detail || 'Unable to authorize download');
+      return payload;
+    }
+
+    function reveal(downloadResponse) {
+      signedDownloadUrl = downloadResponse.download_url;
+      gate.classList.add('hidden');
+      panel.classList.remove('hidden');
+      downloadButton.disabled = false;
+      downloadButton.textContent = 'Download installer';
+      newLinkButton.classList.add('hidden');
+      statusEl.textContent = '';
+    }
+
+    form.addEventListener('submit', async (event) => {
+      event.preventDefault();
+      errorEl.textContent = '';
+      form.querySelector('button[type="submit"]').disabled = true;
+      try {
+        const downloadResponse = await requestJson(
+          `${ANALYTICS_API_BASE_URL}/installer-access/${CLIENT_DB_NAME}/public-download`,
+          {
+            method: 'POST',
+            body: JSON.stringify({
+              username: document.getElementById('username').value,
+              password: document.getElementById('password').value,
+            }),
+          },
+        );
+        reveal(downloadResponse);
+      } catch (error) {
+        errorEl.textContent = error.message || 'Invalid credentials';
+      } finally {
+        form.querySelector('button[type="submit"]').disabled = false;
+      }
+    });
+
+    downloadButton.addEventListener('click', () => {
+      if (!signedDownloadUrl) return;
+      window.location.href = signedDownloadUrl;
+    });
+
+    newLinkButton.addEventListener('click', () => {
+      signedDownloadUrl = '';
+      panel.classList.add('hidden');
+      gate.classList.remove('hidden');
+    });
+  </script>
+</body>
+</html>
