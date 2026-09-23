@@ -17,7 +17,7 @@ export const TOC_ITEMS: TocItem[] = [
       { path: '/storytelling', label: 'Value Based Storytelling' },
       { path: '/experiences', label: 'Immersive Experiences' },
       { path: '/examples', label: 'Immersive Experience Examples' },
-      { path: '/user-management', label: 'Scalable Deployment' },
+      { path: '/user-management', label: 'User Management' },
       { path: '/analytics', label: 'Analytics & Lead Gen.' },
       { href: ANALYTICS_DEMO, label: 'Analytics Demo' },
     ],

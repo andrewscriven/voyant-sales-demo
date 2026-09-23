@@ -23,6 +23,7 @@ export interface LaunchResult {
   pid?: number;
   reason?: string;
   error?: string;
+  stillRunning?: boolean;
 }
 
 export interface ElectronAPI {
@@ -44,6 +45,12 @@ export interface ElectronAPI {
     resolvedPath?: string;
     exists?: boolean;
     reason?: string;
+  }>;
+  getDiagnosticLogFiles: (options?: { maxBytes?: number }) => Promise<{
+    launchDebug: string | null;
+    videoDebug: string | null;
+    svgAnimationDebug: string | null;
+    packDownload: string | null;
   }>;
   openExternal: (url: string) => Promise<boolean>;
 }

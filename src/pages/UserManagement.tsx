@@ -75,7 +75,7 @@ export function UserManagement() {
       <div className={`user-mgmt-glow${slide === 0 ? ' is-on' : ''}`} aria-hidden="true" />
       <PageChrome>
         <div className="page-head">
-          <h1 className="page-title">Scalable Deployment</h1>
+          <h1 className="page-title">{slide === 0 ? 'Scalable Deployment' : 'User Management'}</h1>
           <p className="page-sub page-sub-full" ref={subRef}>
             {SLIDE_SUBS[slide]}
           </p>

@@ -31,7 +31,7 @@ const COLUMNS: {
     ],
   },
   {
-    title: 'Scalable Deployment',
+    title: 'User Management',
     body: 'Provide secure access to your interactive sales demo with easy-to-use controls',
     icon: localMedia('/images/.2026/icon-pillar-scalable.png'),
     links: [{ label: 'Learn More', path: '/user-management' }],

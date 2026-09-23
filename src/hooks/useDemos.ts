@@ -2,6 +2,8 @@ import { useCallback, useEffect, useState } from 'react';
 import type { LaunchPrompt } from '../components/LaunchModal';
 import type { DemoStatus, LaunchResult } from '../types/electron';
 import { catalog } from '../config/catalog';
+import { captureLog } from '../services/diagnostic-logger';
+import { uploadLogs } from '../services/log-uploader';
 
 const STORAGE_KEY = 'voyant-demo-paths';
 
@@ -63,7 +65,12 @@ export function useDemos() {
 
   const describe = (result: LaunchResult) => {
     if (result.ok && result.action === 'focused') return 'Brought the running app to the front.';
+    if (result.ok && result.action === 'launched' && result.stillRunning === false) {
+      return 'The application started and then exited.';
+    }
     if (result.ok && result.action === 'launched') return 'Launched the installed application.';
+    if (result.reason === 'exited') return 'The application started and then exited.';
+    if (result.reason === 'spawn-failed') return result.error || 'The application failed to start.';
     if (result.ok && result.kind === 'url') return 'Opened in your browser.';
     if (result.reason === 'missing') return `Not installed at ${result.path ?? 'the configured path'}.`;
     if (result.reason === 'not-running') return 'That application is not running.';
@@ -89,22 +96,48 @@ export function useDemos() {
 
   const launch = useCallback(async (id: string) => {
     setBusyId(id);
+    const demo = demoFor(id);
+    captureLog('launch', 'card-clicked', id, demo?.path ?? '');
     try {
       if (!window.electronAPI) {
-        const demo = demoFor(id);
         if (demo?.kind === 'url' && demo.path) {
           window.open(demo.path, '_blank', 'noopener');
           setMessage('Opened in your browser.');
+          void uploadLogs('launch-url-browser', { demoId: id, url: demo.path });
           return;
         }
+        captureLog('launch', 'browser-showed-picker', id);
+        void uploadLogs('picker-shown', {
+          demoId: id,
+          runtime: 'web',
+          reason: 'desktop-app',
+          configuredPath: demo?.path ?? null,
+          launched: false,
+        });
         openPrompt(id, 'desktop-app');
         return;
       }
       const result = await window.electronAPI.launchDemo(id);
+      captureLog('launch', 'electron-result', result);
       if (!result.ok && (result.reason === 'missing' || result.reason === 'unknown-demo')) {
+        void uploadLogs('picker-shown', {
+          demoId: id,
+          runtime: 'electron',
+          reason: result.reason,
+          path: result.path ?? null,
+          launched: false,
+        });
         openPrompt(id, 'missing', result.path);
         return;
       }
+      void uploadLogs(result.ok ? 'launch-result' : 'launch-failed', {
+        demoId: id,
+        runtime: 'electron',
+        result,
+        launched: Boolean(result.ok && result.action === 'launched'),
+        stillRunning: result.stillRunning ?? null,
+        showedPicker: false,
+      });
       setMessage(describe(result));
       await refresh();
     } finally {
@@ -115,8 +148,13 @@ export function useDemos() {
   const browsePromptPath = useCallback(async () => {
     if (!prompt) return null;
     if (!window.electronAPI?.pickDemoExe) return null;
+    captureLog('launch', 'picker-browse', prompt.id);
     const picked = await window.electronAPI.pickDemoExe(prompt.id);
-    if (!picked.ok || !picked.resolvedPath) return null;
+    if (!picked.ok || !picked.resolvedPath) {
+      captureLog('launch', 'picker-canceled-or-empty', prompt.id, picked);
+      return null;
+    }
+    captureLog('launch', 'picker-picked', prompt.id, picked.resolvedPath);
     saveBrowserOverride(prompt.id, picked.resolvedPath);
     await refresh();
     return picked.resolvedPath;
@@ -128,12 +166,28 @@ export function useDemos() {
     setBusyId(prompt.id);
     try {
       if (!window.electronAPI) {
+        captureLog('launch', 'browser-path-saved-no-launch', prompt.id, nextPath);
+        void uploadLogs('picker-picked-browser', {
+          demoId: prompt.id,
+          runtime: 'web',
+          path: nextPath,
+          launched: false,
+        });
         setPrompt((current) => (current ? { ...current, path: nextPath } : current));
         setMessage('Path saved. Open this hub in the desktop app to launch local EXEs.');
         return;
       }
       await window.electronAPI.setDemoPath(prompt.id, nextPath);
       const result = await window.electronAPI.launchDemo(prompt.id);
+      captureLog('launch', 'launch-from-picker', prompt.id, result);
+      void uploadLogs(result.ok ? 'launch-from-picker' : 'launch-from-picker-failed', {
+        demoId: prompt.id,
+        runtime: 'electron',
+        path: nextPath,
+        result,
+        launched: Boolean(result.ok && result.action === 'launched'),
+        stillRunning: result.stillRunning ?? null,
+      });
       if (!result.ok && result.reason === 'missing') {
         setPrompt((current) => (current ? { ...current, path: nextPath, reason: 'missing' } : current));
         setMessage(null);

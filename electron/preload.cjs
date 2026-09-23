@@ -10,5 +10,6 @@ contextBridge.exposeInMainWorld('electronAPI', {
   quitDemo: (demoId) => ipcRenderer.invoke('quit-demo', demoId),
   setDemoPath: (demoId, nextPath) => ipcRenderer.invoke('set-demo-path', demoId, nextPath),
   pickDemoExe: (demoId) => ipcRenderer.invoke('pick-demo-exe', demoId),
+  getDiagnosticLogFiles: (options) => ipcRenderer.invoke('get-diagnostic-log-files', options),
   openExternal: (url) => ipcRenderer.invoke('open-external', url),
 });

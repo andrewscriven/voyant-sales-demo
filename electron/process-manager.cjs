@@ -2,6 +2,8 @@ const { spawn, execFile } = require('child_process');
 const fs = require('fs');
 const path = require('path');
 const catalog = require('../shared/demos.json');
+const launchLog = require('./launch-log.cjs');
+const diagnose = require('./diagnose-exe.cjs');
 
 function runPs(script) {
   return new Promise((resolve, reject) => {
@@ -117,15 +119,57 @@ function demoProcessEnv() {
 }
 
 function spawnDemo(exePath) {
-  const child = spawn(exePath, [], {
-    cwd: path.dirname(exePath),
-    detached: true,
-    stdio: 'ignore',
-    windowsHide: false,
-    env: demoProcessEnv(),
+  return new Promise((resolve) => {
+    const timeline = [];
+    const mark = (event, extra) => {
+      timeline.push({ t: Date.now(), event, ...extra });
+    };
+    let spawnError = null;
+    const child = spawn(exePath, [], {
+      cwd: path.dirname(exePath),
+      detached: true,
+      stdio: 'ignore',
+      windowsHide: false,
+      env: demoProcessEnv(),
+    });
+    mark('spawn-called', { pid: child.pid, cwd: path.dirname(exePath) });
+    child.once('error', (err) => {
+      spawnError = {
+        message: err.message,
+        code: err.code,
+        errno: err.errno,
+        syscall: err.syscall,
+      };
+      mark('spawn-error', spawnError);
+    });
+    child.once('exit', (code, signal) => {
+      mark('exit', { code, signal, pidAlive: diagnose.pidAlive(child.pid) });
+    });
+    child.once('close', (code, signal) => {
+      mark('close', { code, signal });
+    });
+    child.unref();
+    setTimeout(async () => {
+      const processes = await diagnose.findProcesses(exePath);
+      const byPath = Array.isArray(processes.byPath) ? processes.byPath : [];
+      const byName = Array.isArray(processes.byName) ? processes.byName : [];
+      mark('poll-2s', {
+        pidAlive: diagnose.pidAlive(child.pid),
+        byPathCount: byPath.length,
+        byNameCount: byName.length,
+      });
+      resolve({
+        pid: child.pid,
+        spawnError,
+        stillRunning: byPath.length > 0 || byName.length > 0 || diagnose.pidAlive(child.pid),
+        runningByPath: byPath,
+        runningByName: byName,
+        runningPids: [...byPath, ...byName].map((proc) => proc.ProcessId),
+        timeline,
+        processes,
+      });
+    }, 2000);
   });
-  child.unref();
-  return child.pid;
 }
 
 async function listManaged(userDataPath) {
@@ -160,15 +204,35 @@ async function listManaged(userDataPath) {
 async function launchDemo(userDataPath, demoId) {
   const demo = catalog.demos.find((item) => item.id === demoId);
   if (!demo) {
+    launchLog.appendLaunchLog(userDataPath, { event: 'launch-unknown-demo', id: demoId });
     return { ok: false, reason: 'unknown-demo', id: demoId };
   }
 
   if (demo.kind === 'url') {
+    launchLog.appendLaunchLog(userDataPath, { event: 'launch-url', id: demo.id, url: demo.url });
     return { ok: true, kind: 'url', url: demo.url, id: demo.id };
   }
 
-  const resolved = resolveDemo(demo, loadOverrides(userDataPath));
+  const overrides = loadOverrides(userDataPath);
+  const resolved = resolveDemo(demo, overrides);
+  const fileProbe = diagnose.probeFile(resolved.resolvedPath);
+  const winProbe = await diagnose.probeWindows(resolved.resolvedPath);
+  launchLog.appendLaunchLog(userDataPath, {
+    event: 'launch-resolve',
+    id: demo.id,
+    configuredPath: demo.path,
+    resolvedPath: resolved.resolvedPath,
+    exists: resolved.exists,
+    overridden: Boolean(overrides[demo.id]),
+    fileProbe,
+    winProbe,
+  });
   if (!resolved.exists) {
+    launchLog.appendLaunchLog(userDataPath, {
+      event: 'launch-missing',
+      id: demo.id,
+      path: resolved.resolvedPath,
+    });
     return { ok: false, reason: 'missing', id: demo.id, path: resolved.resolvedPath };
   }
 
@@ -177,14 +241,77 @@ async function launchDemo(userDataPath, demoId) {
     const pid = running[0].ProcessId;
     try {
       await focusPid(pid);
+      launchLog.appendLaunchLog(userDataPath, {
+        event: 'launch-focused',
+        id: demo.id,
+        pid,
+        path: resolved.resolvedPath,
+      });
       return { ok: true, action: 'focused', id: demo.id, pid, path: resolved.resolvedPath };
     } catch (err) {
+      launchLog.appendLaunchLog(userDataPath, {
+        event: 'launch-focus-failed',
+        id: demo.id,
+        pid,
+        error: err.message,
+      });
       return { ok: false, reason: 'focus-failed', id: demo.id, pid, error: err.message };
     }
   }
 
-  const pid = spawnDemo(resolved.resolvedPath);
-  return { ok: true, action: 'launched', id: demo.id, pid, path: resolved.resolvedPath };
+  launchLog.appendLaunchLog(userDataPath, {
+    event: 'launch-spawn',
+    id: demo.id,
+    path: resolved.resolvedPath,
+  });
+  const spawned = await spawnDemo(resolved.resolvedPath);
+  launchLog.appendLaunchLog(userDataPath, {
+    event: spawned.stillRunning ? 'launch-running' : 'launch-exited',
+    id: demo.id,
+    path: resolved.resolvedPath,
+    ...spawned,
+  });
+  setTimeout(() => {
+    void (async () => {
+      const later = await diagnose.findProcesses(resolved.resolvedPath);
+      const errors = await diagnose.recentAppErrors(path.basename(resolved.resolvedPath));
+      launchLog.appendLaunchLog(userDataPath, {
+        event: 'launch-followup-5s',
+        id: demo.id,
+        path: resolved.resolvedPath,
+        pid: spawned.pid,
+        pidAlive: diagnose.pidAlive(spawned.pid),
+        processes: later,
+        appErrors: errors,
+      });
+      void launchLog.uploadLaunchLogs(
+        userDataPath,
+        'launch-followup',
+        { demoId: demo.id, path: resolved.resolvedPath, pid: spawned.pid, processes: later, appErrors: errors },
+        null,
+      );
+    })();
+  }, 5000);
+  if (spawned.spawnError) {
+    return {
+      ok: false,
+      reason: 'spawn-failed',
+      id: demo.id,
+      pid: spawned.pid,
+      path: resolved.resolvedPath,
+      error: spawned.spawnError.message || spawned.spawnError,
+      stillRunning: false,
+    };
+  }
+  return {
+    ok: spawned.stillRunning,
+    action: 'launched',
+    id: demo.id,
+    pid: spawned.pid,
+    path: resolved.resolvedPath,
+    stillRunning: spawned.stillRunning,
+    reason: spawned.stillRunning ? undefined : 'exited',
+  };
 }
 
 async function focusDemo(userDataPath, demoId) {

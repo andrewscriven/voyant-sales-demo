@@ -1797,9 +1797,18 @@ video.wide-media {
   font-weight: 500;
   line-height: 1;
   cursor: pointer;
+  transition: color 0.18s ease, border-color 0.18s ease;
 }
 
 .pagination button.is-active {
+  color: #3ebefe;
+  border-color: #3ebefe;
+  cursor: default;
+  pointer-events: none;
+}
+
+.pagination button:not(.is-active):hover,
+.pagination button:not(.is-active):focus-visible {
   color: #3ebefe;
   border-color: #3ebefe;
 }

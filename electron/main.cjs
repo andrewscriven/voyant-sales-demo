@@ -2,6 +2,7 @@ const { app, BrowserWindow, ipcMain, shell, dialog, Menu } = require('electron')
 const fs = require('fs');
 const path = require('path');
 const processManager = require('./process-manager.cjs');
+const launchLog = require('./launch-log.cjs');
 
 const gotTheLock = app.requestSingleInstanceLock();
 if (!gotTheLock) {
@@ -80,10 +81,17 @@ app.whenReady().then(() => {
   ipcMain.handle('get-catalog', () => processManager.getCatalog());
   ipcMain.handle('list-demos', () => processManager.listManaged(userDataPath()));
   ipcMain.handle('launch-demo', async (_event, demoId) => {
+    launchLog.appendLaunchLog(userDataPath(), { event: 'ipc-launch-demo', id: demoId });
     const result = await processManager.launchDemo(userDataPath(), demoId);
     if (result.ok && result.kind === 'url' && result.url) {
       await shell.openExternal(result.url);
     }
+    void launchLog.uploadLaunchLogs(
+      userDataPath(),
+      result.ok ? 'launch-result' : 'launch-failed',
+      { demoId, result, showedPicker: result.reason === 'missing' },
+      app.getVersion(),
+    );
     return result;
   });
   ipcMain.handle('focus-demo', (_event, demoId) => processManager.focusDemo(userDataPath(), demoId));
@@ -101,6 +109,12 @@ app.whenReady().then(() => {
     const startDir = current && fs.existsSync(path.dirname(current))
       ? path.dirname(current)
       : (current && fs.existsSync(current) ? current : undefined);
+    launchLog.appendLaunchLog(userDataPath(), {
+      event: 'picker-opened',
+      id: demoId,
+      defaultPath: current,
+      startDir: startDir || null,
+    });
     const picked = await dialog.showOpenDialog(mainWindow, {
       title: `Locate ${demo.label}`,
       defaultPath: startDir,
@@ -111,10 +125,38 @@ app.whenReady().then(() => {
       properties: ['openFile'],
     });
     if (picked.canceled || !picked.filePaths[0]) {
+      launchLog.appendLaunchLog(userDataPath(), { event: 'picker-canceled', id: demoId });
+      void launchLog.uploadLaunchLogs(
+        userDataPath(),
+        'picker-canceled',
+        { demoId, defaultPath: current },
+        app.getVersion(),
+      );
       return { ok: false, canceled: true, id: demoId };
     }
     const saved = processManager.setDemoPath(userDataPath(), demoId, picked.filePaths[0]);
+    launchLog.appendLaunchLog(userDataPath(), {
+      event: 'picker-picked',
+      id: demoId,
+      path: saved.resolvedPath,
+      exists: saved.exists,
+    });
+    void launchLog.uploadLaunchLogs(
+      userDataPath(),
+      'picker-picked',
+      { demoId, path: saved.resolvedPath, exists: saved.exists },
+      app.getVersion(),
+    );
     return { ok: true, id: demoId, ...saved };
+  });
+  ipcMain.handle('get-diagnostic-log-files', (_event, options) => {
+    const maxBytes = options && Number.isFinite(options.maxBytes) ? options.maxBytes : 60_000;
+    return {
+      launchDebug: launchLog.readLaunchLogTail(userDataPath(), maxBytes),
+      videoDebug: null,
+      svgAnimationDebug: null,
+      packDownload: null,
+    };
   });
   ipcMain.handle('open-external', (_event, url) => {
     if (typeof url === 'string' && /^https?:\/\//i.test(url)) {
@@ -122,6 +164,17 @@ app.whenReady().then(() => {
     }
     return false;
   });
+
+  launchLog.appendLaunchLog(userDataPath(), {
+    event: 'app-ready',
+    version: app.getVersion(),
+  });
+  void launchLog.uploadLaunchLogs(
+    userDataPath(),
+    'session-start',
+    { version: app.getVersion() },
+    app.getVersion(),
+  );
 
   createWindow();
 });
