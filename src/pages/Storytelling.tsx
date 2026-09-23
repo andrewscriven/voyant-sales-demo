@@ -1,4 +1,4 @@
-import { useLayoutEffect, useRef, useState } from 'react';
+import { useLayoutEffect, useRef, useState, type ReactNode } from 'react';
 import { NeonIcon, type IconName } from '../components/NeonIcon';
 import { PageChrome } from '../components/PageChrome';
 import { Slider } from '../components/Slider';
@@ -31,11 +31,25 @@ const CAPS: { title: string; body: string; icon: IconName }[] = [
   },
 ];
 
-const TOOLS = [
+const TOOLS: {
+  id: string;
+  label: string;
+  title: string;
+  heading?: ReactNode;
+  body: string;
+  image: string;
+}[] = [
   {
     id: 'stats',
     label: 'Challenge Statistics',
     title: 'Library of Industry & Customer Pain Points',
+    heading: (
+      <>
+        Library of Industry &amp;
+        <br />
+        Customer Pain Points
+      </>
+    ),
     body: 'Access to thousands of industry statistics from our library aids in quickly and clearly describing your customers’ challenges and quantify their impact.',
     image: localMedia('/images/.2026/library-challenge-statistics.png'),
   },
@@ -82,63 +96,60 @@ export function Storytelling() {
   }, [slide]);
 
   return (
-    <div className="page page-inner">
+    <div className="page page-inner page-storytelling">
       <PageChrome>
         <div className="page-head">
           <h1 className="page-title">Value Based Storytelling</h1>
           <div className="page-sub-clip">
             <p className="page-sub" ref={subRef}>
               {slide === 0
-                ? 'We partner with your team to craft a differentiated & value-based storyboard.'
-                : 'A robust suite of storytelling tools helps to quickly shift your message from features to business value.'}
+                ? 'A robust suite of storytelling tools helps to quickly shift your message from features to business value.'
+                : 'We partner with your team to craft a differentiated & value-based storyboard.'}
             </p>
           </div>
         </div>
         <div className="page-main">
-          <Slider index={slide} count={2} onChange={setSlide}>
-            {slide === 0 ? (
-              <div className="panel">
-                <div className="panel-box">
-                  <h2>Key Storytelling Deliverables &amp; Capabilities</h2>
-                  <div className="card-grid">
-                    {CAPS.map((item) => (
-                      <article key={item.title} className="card dark-card">
-                        <div className="card-head">
-                          <NeonIcon name={item.icon} framed />
-                          <h3>{item.title}</h3>
-                        </div>
-                        <p>{item.body}</p>
-                      </article>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            ) : (
-              <div className="panel">
-                <h2>Suite of Storytelling Tools</h2>
-                <div className="tab-content">
-                  <Tabs tabs={TOOLS} active={tab} onChange={setTab} />
-                  <TabStage active={tab} itemSelector=".split-tools">
-                    {TOOLS.map((item) => (
-                      <div
-                        key={item.id}
-                        data-tab-pane={item.id}
-                        className={item.id === tab ? 'is-active' : ''}
-                        aria-hidden={item.id !== tab}
-                      >
-                        <div className="split split-tools">
-                          <img src={item.image} alt={item.title} />
-                          <div className="split-copy">
-                            <h3>{item.title}</h3>
-                            <p>{item.body}</p>
-                          </div>
+          <Slider index={slide} onChange={setSlide}>
+            <div className="panel">
+              <h2>Suite of Storytelling Tools</h2>
+              <div className="tab-content">
+                <Tabs tabs={TOOLS} active={tab} onChange={setTab} />
+                <TabStage active={tab} itemSelector=".split-tools">
+                  {TOOLS.map((item) => (
+                    <div
+                      key={item.id}
+                      data-tab-pane={item.id}
+                      className={item.id === tab ? 'is-active' : ''}
+                      aria-hidden={item.id !== tab}
+                    >
+                      <div className="split split-tools">
+                        <img src={item.image} alt={item.title} />
+                        <div className="split-copy">
+                          <h3>{item.heading ?? item.title}</h3>
+                          <p>{item.body}</p>
                         </div>
                       </div>
-                    ))}
-                  </TabStage>
+                    </div>
+                  ))}
+                </TabStage>
+              </div>
+            </div>
+            <div className="panel">
+              <div className="panel-box">
+                <h2>Key Storytelling Deliverables &amp; Capabilities</h2>
+                <div className="card-grid">
+                  {CAPS.map((item) => (
+                    <article key={item.title} className="card dark-card">
+                      <div className="card-head">
+                        <NeonIcon name={item.icon} framed />
+                        <h3>{item.title}</h3>
+                      </div>
+                      <p>{item.body}</p>
+                    </article>
+                  ))}
                 </div>
               </div>
-            )}
+            </div>
           </Slider>
         </div>
       </PageChrome>

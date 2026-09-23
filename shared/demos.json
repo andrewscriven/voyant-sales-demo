@@ -127,8 +127,8 @@
     },
     {
       "id": "reservoir",
-      "label": "GE Reservoir",
-      "category": "assessments",
+      "label": "GE Reservoir Solutions",
+      "category": "tours",
       "kind": "exe",
       "path": "C:\\docs\\examples\\examples\\ge_reservoir_ex_26\\Reservoir.exe"
     },

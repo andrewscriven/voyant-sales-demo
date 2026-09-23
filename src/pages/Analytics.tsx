@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { AnalyticsHeroLottie } from '../components/AnalyticsHeroLottie';
 import { NeonIcon, type IconName } from '../components/NeonIcon';
 import { PageChrome } from '../components/PageChrome';
 import { Slider } from '../components/Slider';
@@ -18,66 +19,58 @@ export function Analytics() {
   const [slide, setSlide] = useState(0);
 
   return (
-    <div className="page page-inner">
+    <div className="page page-inner page-analytics">
       <PageChrome>
         <div className="page-head">
           <h1 className="page-title">Analytics & Lead Gen.</h1>
-          <p className="page-sub">
+          <p className="page-sub page-sub-full">
             Analyze customer and sales partner usage of your interactive demo and turn engagement into qualified leads.
           </p>
         </div>
         <div className="page-main">
-          <Slider index={slide} count={4} onChange={setSlide}>
-            {slide === 0 && (
-              <div className="panel">
-                <img className="wide-media" src={localMedia('/images/archive/analytics-overview-dashboard.png')} alt="Analytics overview dashboard" />
+          <Slider index={slide} onChange={setSlide}>
+            <div className="panel panel-analytics-hero">
+              <AnalyticsHeroLottie />
+            </div>
+            <div className="panel split">
+              <img src={localMedia('/images/analytics-adopters.png')} alt="Top adopters and low activity partners" />
+              <div>
+                <h2>Optimize Sales Strategy with Channel Partner Analysis</h2>
+                <p>
+                  Leverage detailed activity analytics to identify winning behaviors across your sales teams and
+                  channel partners, tune and standardize your sales process, and systematically increase conversion
+                  rates, deal velocity, and overall revenue performance.
+                </p>
               </div>
-            )}
-            {slide === 1 && (
-              <div className="panel split">
-                <img src={localMedia('/images/analytics-adopters.png')} alt="Top adopters and low activity partners" />
-                <div>
-                  <h2>Optimize Sales Strategy with Channel Partner Analysis</h2>
-                  <p>
-                    Leverage detailed activity analytics to identify winning behaviors across your sales teams and
-                    channel partners, tune and standardize your sales process, and systematically increase conversion
-                    rates, deal velocity, and overall revenue performance.
-                  </p>
+            </div>
+            <div className="panel split">
+              <div>
+                <h2>Track Customer Engagement to Close More Deals</h2>
+                <p>
+                  Use content engagement data to see exactly what customers care about, keep sales teams focused on
+                  active opportunities, tailor their outreach to the topics customers are interested in, and trigger
+                  timely, personalized follow-ups that move opportunities forward faster.
+                </p>
+              </div>
+              <img src={localMedia('/images/user-management-sales-partners.png')} alt="Customer engagement" />
+            </div>
+            <div className="panel">
+              <div className="panel-box">
+                <h2>Key Functionality &amp; Capabilities</h2>
+                <p>What customers love most about the Voyant Studios analytic dashboards.</p>
+                <div className="card-grid three">
+                  {CAPS.map((item) => (
+                    <article key={item.title} className="card dark-card">
+                      <div className="card-head">
+                        <NeonIcon name={item.icon} framed />
+                        <h3>{item.title}</h3>
+                      </div>
+                      <p>{item.body}</p>
+                    </article>
+                  ))}
                 </div>
               </div>
-            )}
-            {slide === 2 && (
-              <div className="panel split">
-                <div>
-                  <h2>Track Customer Engagement to Close More Deals</h2>
-                  <p>
-                    Use content engagement data to see exactly what customers care about, keep sales teams focused on
-                    active opportunities, tailor their outreach to the topics customers are interested in, and trigger
-                    timely, personalized follow-ups that move opportunities forward faster.
-                  </p>
-                </div>
-                <img src={localMedia('/images/user-management-sales-partners.png')} alt="Customer engagement" />
-              </div>
-            )}
-            {slide === 3 && (
-              <div className="panel">
-                <div className="panel-box">
-                  <h2>Key Functionality &amp; Capabilities</h2>
-                  <p>What customers love most about the Voyant Studios analytic dashboards.</p>
-                  <div className="card-grid three">
-                    {CAPS.map((item) => (
-                      <article key={item.title} className="card dark-card">
-                        <div className="card-head">
-                          <NeonIcon name={item.icon} framed />
-                          <h3>{item.title}</h3>
-                        </div>
-                        <p>{item.body}</p>
-                      </article>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            )}
+            </div>
           </Slider>
         </div>
       </PageChrome>

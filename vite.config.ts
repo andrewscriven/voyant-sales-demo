@@ -8,6 +8,9 @@ export default defineConfig({
     port: 3002,
     strictPort: true,
     host: '127.0.0.1',
+    headers: {
+      'Cache-Control': 'no-store',
+    },
   },
   preview: {
     port: 4174,

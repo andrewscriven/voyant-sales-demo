@@ -8,6 +8,8 @@ const fs = require('fs');
 const path = require('path');
 
 const SIGN_DESCRIPTION = 'Voyant Sales Demo';
+// Same cert as ImmersiveSellingSetup-v2.aip (User\MY). /a can pick a stale cert and never prompt SafeNet.
+const CERT_THUMBPRINT = 'A46E6A256FF974DD3AFF02725C5BC10D4EB15CFC';
 
 exports.default = async function signWithSafeNet(configuration) {
   if (process.env.SKIP_SIGNING === 'true') {
@@ -46,8 +48,8 @@ exports.default = async function signWithSafeNet(configuration) {
     throw new Error('signtool.exe not found. Install the Windows SDK or set SKIP_SIGNING=true for a local unsigned build.');
   }
 
-  const signCommand = `"${signtool}" sign /a /fd SHA256 /d "${SIGN_DESCRIPTION}" /tr http://timestamp.digicert.com /td SHA256 "${configuration.path}"`;
-  console.log('Waiting for SafeNet token prompt...');
+  const signCommand = `"${signtool}" sign /sha1 ${CERT_THUMBPRINT} /fd SHA256 /d "${SIGN_DESCRIPTION}" /tr http://timestamp.digicert.com /td SHA256 "${configuration.path}"`;
+  console.log(`Waiting for SafeNet token prompt (${CERT_THUMBPRINT})...`);
   execSync(signCommand, { stdio: 'inherit', windowsHide: false });
   console.log('Signed successfully');
 };

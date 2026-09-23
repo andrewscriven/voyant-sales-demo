@@ -75,71 +75,65 @@ export function UserManagement() {
       <div className={`user-mgmt-glow${slide === 0 ? ' is-on' : ''}`} aria-hidden="true" />
       <PageChrome>
         <div className="page-head">
-          <h1 className="page-title">User Management</h1>
+          <h1 className="page-title">Scalable Deployment</h1>
           <p className="page-sub page-sub-full" ref={subRef}>
             {SLIDE_SUBS[slide]}
           </p>
         </div>
         <div className="page-main">
-          <Slider index={slide} count={3} onChange={setSlide}>
-            {slide === 0 && (
-              <div className="panel panel-deploy">
-                <div className="deploy-scenes">
-                  {[DEPLOY_SCENES.slice(0, 3), DEPLOY_SCENES.slice(3)].map((row, rowIndex) => (
-                    <div className="deploy-scenes-row" key={rowIndex}>
-                      {row.map((scene) => (
-                        <div
-                          className={`deploy-scene-cell${scene.globe ? ' deploy-scene-globe' : ''}`}
-                          key={scene.alt}
-                        >
-                          <div className="deploy-scene-media">
-                            <div
-                              className={`deploy-scene-frame${scene.globe ? ' deploy-scene-frame-full' : ''}${scene.wide ? ' deploy-scene-frame-wide' : ''}${scene.compact ? ' deploy-scene-frame-compact' : ''}${scene.grow ? ' deploy-scene-frame-grow' : ''}`}
-                            >
-                              <img
-                                src={scene.src}
-                                alt={scene.alt}
-                                className={`deploy-scene-img${scene.globe ? ' deploy-scene-img-scale' : ''}`}
-                              />
-                              {scene.overlays?.map((overlay) => (
-                                <span
-                                  key={overlay.label}
-                                  className={`deploy-scene-overlay is-${overlay.position}`}
-                                >
-                                  {overlay.label}
-                                </span>
-                              ))}
-                            </div>
+          <Slider index={slide} onChange={setSlide}>
+            <div className="panel panel-deploy">
+              <div className="deploy-scenes">
+                {[DEPLOY_SCENES.slice(0, 3), DEPLOY_SCENES.slice(3)].map((row, rowIndex) => (
+                  <div className="deploy-scenes-row" key={rowIndex}>
+                    {row.map((scene) => (
+                      <div
+                        className={`deploy-scene-cell${scene.globe ? ' deploy-scene-globe' : ''}`}
+                        key={scene.alt}
+                      >
+                        <div className="deploy-scene-media">
+                          <div
+                            className={`deploy-scene-frame${scene.globe ? ' deploy-scene-frame-full' : ''}${scene.wide ? ' deploy-scene-frame-wide' : ''}${scene.compact ? ' deploy-scene-frame-compact' : ''}${scene.grow ? ' deploy-scene-frame-grow' : ''}`}
+                          >
+                            <img
+                              src={scene.src}
+                              alt={scene.alt}
+                              className={`deploy-scene-img${scene.globe ? ' deploy-scene-img-scale' : ''}`}
+                            />
+                            {scene.overlays?.map((overlay) => (
+                              <span
+                                key={overlay.label}
+                                className={`deploy-scene-overlay is-${overlay.position}`}
+                              >
+                                {overlay.label}
+                              </span>
+                            ))}
                           </div>
-                          {scene.title ? <p className="deploy-scene-title">{scene.title}</p> : null}
                         </div>
-                      ))}
-                    </div>
-                  ))}
-                </div>
+                        {scene.title ? <p className="deploy-scene-title">{scene.title}</p> : null}
+                      </div>
+                    ))}
+                  </div>
+                ))}
               </div>
-            )}
-            {slide === 1 && (
-              <div className="panel panel-partners">
-                <div className="partner-access">
-                  <img
-                    src={localMedia('/images/user-mgmt-instant-access.png')}
-                    alt="Partner invitations"
-                    className="partner-access-people"
-                  />
-                  <img
-                    src={localMedia('/images/user-management-demo.png')}
-                    alt="Electrical Substation Solutions interactive sales demo"
-                    className="partner-access-demo"
-                  />
-                </div>
+            </div>
+            <div className="panel panel-partners">
+              <div className="partner-access">
+                <img
+                  src={localMedia('/images/user-mgmt-instant-access.png')}
+                  alt="Partner invitations"
+                  className="partner-access-people"
+                />
+                <img
+                  src={localMedia('/images/user-management-demo.png')}
+                  alt="Electrical Substation Solutions interactive sales demo"
+                  className="partner-access-demo"
+                />
               </div>
-            )}
-            {slide === 2 && (
-              <div className="panel panel-register">
-                <img src={localMedia('/images/user-mgmt-instant-registration.png')} alt="Customer registration journey" />
-              </div>
-            )}
+            </div>
+            <div className="panel panel-register">
+              <img src={localMedia('/images/user-mgmt-instant-registration.png')} alt="Customer registration journey" />
+            </div>
           </Slider>
         </div>
       </PageChrome>

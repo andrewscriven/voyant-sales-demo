@@ -1,7 +1,6 @@
 import { useNavigate } from 'react-router-dom';
 import { openWebLink } from '../config/site';
 import { TOC_ITEMS, type TocItem } from '../config/toc';
-import { useDemos } from '../hooks/useDemos';
 import './Menu.css';
 
 interface MenuProps {
@@ -12,8 +11,6 @@ interface MenuProps {
 
 export function Menu({ isOpen, onClose, version }: MenuProps) {
   const navigate = useNavigate();
-  const { demos, focus, quit } = useDemos();
-  const running = demos.filter((demo) => demo.running.length > 0);
 
   const handleNav = (path?: string) => {
     if (!path) return;
@@ -62,22 +59,6 @@ export function Menu({ isOpen, onClose, version }: MenuProps) {
       <nav className="menu-nav">
         {TOC_ITEMS.filter((item) => item.action !== 'exit').map((item) => renderItem(item, 0))}
       </nav>
-
-      {running.length > 0 && (
-        <div className="menu-running">
-          <div className="menu-running-title">Running demos</div>
-          {running.map((demo) => (
-            <div key={demo.id} className="menu-running-row">
-              <button type="button" onClick={() => void focus(demo.id)}>
-                {demo.label}
-              </button>
-              <button type="button" className="menu-running-quit" onClick={() => void quit(demo.id)}>
-                Close
-              </button>
-            </div>
-          ))}
-        </div>
-      )}
 
       {TOC_ITEMS.filter((item) => item.action === 'exit').map((item) => renderItem(item, 0))}
 

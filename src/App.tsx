@@ -12,6 +12,7 @@ import { UserManagement } from './pages/UserManagement';
 import { Analytics } from './pages/Analytics';
 import { AnalyticsDemo } from './pages/AnalyticsDemo';
 import { Offerings } from './pages/Offerings';
+import { Tradeshows } from './pages/Tradeshows';
 import { PageTransition } from './components/PageTransition';
 import { StageBackground } from './components/StageBackground';
 import { LOGO_SRC } from './config/site';
@@ -76,6 +77,7 @@ function AppShell() {
                 <Route path="/analytics" element={<Analytics />} />
                 <Route path="/analytics-demo" element={<AnalyticsDemo />} />
                 <Route path="/offerings" element={<Offerings />} />
+                <Route path="/tradeshows/:brand?" element={<Tradeshows />} />
                 <Route path="*" element={<Navigate to="/" replace />} />
               </Routes>
             )}

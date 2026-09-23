@@ -107,6 +107,13 @@ export function Experiences() {
   useVideoBloomBlend(heroVideoRef, slide === 0);
 
   useLayoutEffect(() => {
+    const el = heroVideoRef.current;
+    if (!el) return;
+    if (slide === 0) void el.play();
+    else el.pause();
+  }, [slide]);
+
+  useLayoutEffect(() => {
     if (firstSub.current) {
       firstSub.current = false;
       prevSlide.current = slide;
@@ -119,7 +126,7 @@ export function Experiences() {
   }, [slide]);
 
   return (
-    <div className="page page-inner">
+    <div className="page page-inner page-experiences">
       <PageChrome>
         <div className="page-head">
           <h1 className="page-title">Immersive Experiences</h1>
@@ -128,120 +135,110 @@ export function Experiences() {
           </p>
         </div>
         <div className="page-main">
-          <Slider index={slide} count={5} onChange={setSlide}>
-            {slide === 0 && (
-              <div className="panel panel-hero-video">
-                <div className="panel-hero-video-frame">
-                  <video
-                    ref={heroVideoRef}
-                    className="wide-media"
-                    src={localMedia('/videos/modular-landscape-v3.mp4')}
-                    autoPlay
-                    muted
-                    playsInline
-                    onEnded={(event) => {
-                      const el = event.currentTarget;
-                      el.currentTime = 4;
-                      void el.play();
-                    }}
-                  />
-                </div>
+          <Slider index={slide} onChange={setSlide}>
+            <div className="panel panel-hero-video">
+              <div className="panel-hero-video-frame">
+                <video
+                  ref={heroVideoRef}
+                  className="wide-media"
+                  src={localMedia('/videos/modular-landscape-v3.mp4')}
+                  autoPlay={slide === 0}
+                  muted
+                  playsInline
+                  onEnded={(event) => {
+                    const el = event.currentTarget;
+                    el.currentTime = 4;
+                    void el.play();
+                  }}
+                />
               </div>
-            )}
-            {slide === 1 && (
-              <div className="panel">
-                <div className="split">
-                  {MODULES.map((item) => (
-                    <article key={item.title}>
-                      <h3>{item.title}</h3>
-                      <img src={item.image} alt={item.title} />
+            </div>
+            <div className="panel">
+              <div className="split">
+                {MODULES.map((item) => (
+                  <article key={item.title}>
+                    <h3>{item.title}</h3>
+                    <img src={item.image} alt={item.title} />
+                    <p>{item.body}</p>
+                  </article>
+                ))}
+              </div>
+            </div>
+            <div className="panel">
+              <div className="app-grid">
+                {APPLICATIONS.map((item) => (
+                  <figure key={item.title}>
+                    <img src={item.img} alt={item.title} />
+                    <figcaption>{item.title}</figcaption>
+                  </figure>
+                ))}
+              </div>
+            </div>
+            <div className="panel">
+              <div className="tab-content">
+                <Tabs tabs={ADDON_TABS} active={addon} onChange={setAddon} />
+                <TabStage active={addon} itemSelector=".split-tools">
+                  {ADDON_TABS.map((item) => {
+                    const active = item.id === addon;
+                    return (
+                      <div
+                        key={item.id}
+                        data-tab-pane={item.id}
+                        className={active ? 'is-active' : ''}
+                        aria-hidden={!active}
+                      >
+                        <div className="split split-tools">
+                          <div className="device-frame">
+                            <div className="device-screen">
+                              <video
+                                src={item.video}
+                                poster={item.image}
+                                autoPlay={active && slide === 3}
+                                muted
+                                loop
+                                playsInline
+                                ref={(el) => {
+                                  if (!el) return;
+                                  if (active && slide === 3) void el.play();
+                                  else el.pause();
+                                }}
+                              />
+                            </div>
+                          </div>
+                          <div className="split-copy">
+                            <h3>{item.title}</h3>
+                            <p>{item.body}</p>
+                            <div className="text-links">
+                              <button
+                                type="button"
+                                onClick={() => navigate(`/examples/${item.examplesTab}`)}
+                              >
+                                Learn More
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </TabStage>
+              </div>
+            </div>
+            <div className="panel">
+              <div className="panel-box panel-box--flush">
+                <div className="card-grid three">
+                  {CAPS.map((item) => (
+                    <article key={item.title} className="card dark-card">
+                      <div className="card-head">
+                        <NeonIcon name={item.icon} framed />
+                        <h3>{item.title}</h3>
+                      </div>
                       <p>{item.body}</p>
                     </article>
                   ))}
                 </div>
               </div>
-            )}
-            {slide === 2 && (
-              <div className="panel">
-                <div className="app-grid">
-                  {APPLICATIONS.map((item) => (
-                    <figure key={item.title}>
-                      <img src={item.img} alt={item.title} />
-                      <figcaption>{item.title}</figcaption>
-                    </figure>
-                  ))}
-                </div>
-              </div>
-            )}
-            {slide === 3 && (
-              <div className="panel">
-                <div className="tab-content">
-                  <Tabs tabs={ADDON_TABS} active={addon} onChange={setAddon} />
-                  <TabStage active={addon} itemSelector=".split-tools">
-                    {ADDON_TABS.map((item) => {
-                      const active = item.id === addon;
-                      return (
-                        <div
-                          key={item.id}
-                          data-tab-pane={item.id}
-                          className={active ? 'is-active' : ''}
-                          aria-hidden={!active}
-                        >
-                          <div className="split split-tools">
-                            <div className="device-frame">
-                              <div className="device-screen">
-                                <video
-                                  src={item.video}
-                                  poster={item.image}
-                                  autoPlay={active}
-                                  muted
-                                  loop
-                                  playsInline
-                                  ref={(el) => {
-                                    if (!el) return;
-                                    if (active) void el.play();
-                                    else el.pause();
-                                  }}
-                                />
-                              </div>
-                            </div>
-                            <div className="split-copy">
-                              <h3>{item.title}</h3>
-                              <p>{item.body}</p>
-                              <div className="text-links">
-                                <button
-                                  type="button"
-                                  onClick={() => navigate(`/examples/${item.examplesTab}`)}
-                                >
-                                  Learn More
-                                </button>
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </TabStage>
-                </div>
-              </div>
-            )}
-            {slide === 4 && (
-              <div className="panel">
-                <div className="panel-box panel-box--flush">
-                  <div className="card-grid three">
-                    {CAPS.map((item) => (
-                      <article key={item.title} className="card dark-card">
-                        <div className="card-head">
-                          <NeonIcon name={item.icon} framed />
-                          <h3>{item.title}</h3>
-                        </div>
-                        <p>{item.body}</p>
-                      </article>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            )}
+            </div>
           </Slider>
         </div>
       </PageChrome>

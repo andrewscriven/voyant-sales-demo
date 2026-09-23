@@ -17,12 +17,13 @@ export const TOC_ITEMS: TocItem[] = [
       { path: '/storytelling', label: 'Value Based Storytelling' },
       { path: '/experiences', label: 'Immersive Experiences' },
       { path: '/examples', label: 'Immersive Experience Examples' },
-      { path: '/user-management', label: 'User Management' },
-      { path: '/analytics', label: 'Analytics & lead Gen.' },
+      { path: '/user-management', label: 'Scalable Deployment' },
+      { path: '/analytics', label: 'Analytics & Lead Gen.' },
       { href: ANALYTICS_DEMO, label: 'Analytics Demo' },
     ],
   },
   { path: '/offerings', label: 'Our Offerings' },
+  { path: '/tradeshows', label: 'Tradeshows & Events' },
   { path: '/exit', label: 'Exit', action: 'exit' },
 ];
 
@@ -41,10 +42,6 @@ export function getSeriesFooter(pathname: string): { path: string; label: string
         : { path: PLATFORM_PATH, label: 'Immersive Selling Platform' },
       { path: OFFERINGS_PATH, label: 'Our Offerings' },
     ];
-  }
-
-  if (pathname === OFFERINGS_PATH) {
-    return [{ path: PLATFORM_PATH, label: 'Immersive Selling Platform' }];
   }
 
   return [];

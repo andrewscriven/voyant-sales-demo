@@ -1,42 +1,103 @@
-import { useEffect, useState } from 'react';
+import { Children, useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react';
 import { useParams } from 'react-router-dom';
 import { LaunchModal } from '../components/LaunchModal';
 import { PageChrome } from '../components/PageChrome';
-import { Slider } from '../components/Slider';
+import { Pagination } from '../components/Pagination';
 import { TabStage } from '../components/TabStage';
 import { Tabs } from '../components/Tabs';
 import { EXAMPLE_CARDS, EXAMPLE_TABS, type ExampleCard } from '../config/examples';
 import { useDemos } from '../hooks/useDemos';
+import { animateDirectionalIn } from '../lib/animateIn';
 import './pages.css';
 
 type TabId = (typeof EXAMPLE_TABS)[number]['id'];
 
 function ExamplePanel({
   card,
-  running,
   busy,
   onLaunch,
 }: {
   card: ExampleCard;
-  running: boolean;
   busy: boolean;
   onLaunch: () => void;
 }) {
+  const [launching, setLaunching] = useState(false);
+
+  useEffect(() => {
+    if (busy) setLaunching(true);
+  }, [busy]);
+
+  useEffect(() => {
+    if (!launching || busy) return;
+    const timer = window.setTimeout(() => setLaunching(false), 1400);
+    return () => window.clearTimeout(timer);
+  }, [launching, busy]);
+
   return (
     <button
       type="button"
-      className="example-card"
+      className={`example-card${launching || busy ? ' is-launching' : ''}`}
       disabled={busy}
-      onClick={onLaunch}
+      onClick={() => {
+        setLaunching(true);
+        onLaunch();
+      }}
     >
       <span className="example-thumb">
-        <img src={card.image} alt={card.brand} />
-        {running && <span className="example-live">Running</span>}
+        <span className="example-shot">
+          <img src={card.image} alt={card.brand} />
+          {(launching || busy) && <span className="example-launching">Launching…</span>}
+        </span>
       </span>
       <span className="example-brand">
         {card.brand} <em>| {card.industry}</em>
       </span>
     </button>
+  );
+}
+
+function ExamplePager({
+  index,
+  onChange,
+  children,
+}: {
+  index: number;
+  onChange: (index: number) => void;
+  children: ReactNode;
+}) {
+  const pages = Children.toArray(children);
+  const paneRef = useRef<HTMLDivElement>(null);
+  const prevIndex = useRef(index);
+  const first = useRef(true);
+
+  useLayoutEffect(() => {
+    if (first.current) {
+      first.current = false;
+      prevIndex.current = index;
+      return;
+    }
+    if (index === prevIndex.current) return;
+    const direction = index > prevIndex.current ? 1 : -1;
+    prevIndex.current = index;
+    animateDirectionalIn(paneRef.current, direction);
+  }, [index]);
+
+  return (
+    <div className="example-pager">
+      <div className="example-pager-stage">
+        {pages.map((page, i) => (
+          <div
+            key={i}
+            className={`example-pager-page${i === index ? ' is-active' : ''}`}
+            ref={i === index ? paneRef : undefined}
+            aria-hidden={i !== index}
+          >
+            {page}
+          </div>
+        ))}
+      </div>
+      <Pagination index={index} count={pages.length} onChange={onChange} />
+    </div>
   );
 }
 
@@ -46,7 +107,6 @@ function tabFromSearch(value: string | null): TabId {
 
 export function Examples() {
   const {
-    demos,
     busyId,
     prompt,
     message,
@@ -78,7 +138,6 @@ export function Examples() {
                 const cards = EXAMPLE_CARDS.filter((card) => card.tab === item.id);
                 const page = pages[item.id] ?? 0;
                 const pageCount = Math.max(1, ...cards.map((card) => card.page + 1));
-                const visible = cards.filter((card) => card.page === page);
                 return (
                   <div
                     key={item.id}
@@ -86,26 +145,26 @@ export function Examples() {
                     className={item.id === tab ? 'is-active' : ''}
                     aria-hidden={item.id !== tab}
                   >
-                    <Slider
+                    <ExamplePager
                       index={page}
-                      count={pageCount}
                       onChange={(index) => setPages((prev) => ({ ...prev, [item.id]: index }))}
                     >
-                      <div className={`example-grid ${visible.length <= 4 ? 'four' : ''}`}>
-                        {visible.map((card) => {
-                          const demo = demos.find((entry) => entry.id === card.id);
-                          return (
-                            <ExamplePanel
-                              key={card.id}
-                              card={card}
-                              running={Boolean(demo?.running.length)}
-                              busy={busyId === card.id}
-                              onLaunch={() => void launch(card.id)}
-                            />
-                          );
-                        })}
-                      </div>
-                    </Slider>
+                      {Array.from({ length: pageCount }, (_, pageIndex) => {
+                        const visible = cards.filter((card) => card.page === pageIndex);
+                        return (
+                          <div key={pageIndex} className={`example-grid ${visible.length <= 4 ? 'four' : ''}`}>
+                            {visible.map((card) => (
+                                <ExamplePanel
+                                  key={card.id}
+                                  card={card}
+                                  busy={busyId === card.id}
+                                  onLaunch={() => void launch(card.id)}
+                                />
+                            ))}
+                          </div>
+                        );
+                      })}
+                    </ExamplePager>
                   </div>
                 );
               })}

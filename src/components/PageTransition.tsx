@@ -40,36 +40,45 @@ function setEnterState(groups: HTMLElement[]) {
   });
 }
 
+function notifyPageEnter(loc: Location) {
+  window.dispatchEvent(new CustomEvent('page-enter-complete', { detail: { path: loc.pathname } }));
+}
+
+interface Layer {
+  loc: Location;
+  phase: 'in' | 'out';
+}
+
 interface PageTransitionProps {
   render: (location: Location) => ReactNode;
 }
 
 export function PageTransition({ render }: PageTransitionProps) {
   const location = useLocation();
-  const [incoming, setIncoming] = useState(location);
-  const [outgoing, setOutgoing] = useState<Location | null>(null);
-  const incomingRef = useRef<HTMLDivElement>(null);
-  const outgoingRef = useRef<HTMLDivElement>(null);
-  const incomingLocRef = useRef(incoming);
+  const [layers, setLayers] = useState<Layer[]>([{ loc: location, phase: 'in' }]);
+  const layerEls = useRef(new Map<string, HTMLDivElement>());
+  const layersRef = useRef(layers);
   const runningRef = useRef(false);
-  const queueRef = useRef<Location | null>(null);
   const firstRef = useRef(true);
-  incomingLocRef.current = incoming;
+  const animGen = useRef(0);
+  layersRef.current = layers;
 
   useLayoutEffect(() => {
-    if (location.key === incomingLocRef.current.key) return;
-    if (runningRef.current) {
-      queueRef.current = location;
-      return;
-    }
+    const currentIn = layersRef.current.find((layer) => layer.phase === 'in');
+    if (!currentIn || location.key === currentIn.loc.key) return;
     runningRef.current = true;
-    setOutgoing(incomingLocRef.current);
-    setIncoming(location);
+    setLayers([
+      { loc: currentIn.loc, phase: 'out' },
+      { loc: location, phase: 'in' },
+    ]);
   }, [location]);
 
   useLayoutEffect(() => {
-    const inEl = incomingRef.current;
-    if (!inEl) return;
+    const inLayer = layers.find((layer) => layer.phase === 'in');
+    const outLayer = layers.find((layer) => layer.phase === 'out');
+    const inEl = inLayer ? layerEls.current.get(inLayer.loc.key) : undefined;
+    if (!inEl || !inLayer) return;
+    const enterLoc = inLayer.loc;
 
     if (firstRef.current) {
       firstRef.current = false;
@@ -86,6 +95,7 @@ export function PageTransition({ render }: PageTransitionProps) {
         onComplete: () => {
           gsap.set(groups, { clearProps: 'transform' });
           runningRef.current = false;
+          notifyPageEnter(enterLoc);
         },
       });
       return () => {
@@ -93,30 +103,27 @@ export function PageTransition({ render }: PageTransitionProps) {
       };
     }
 
-    if (!outgoing) return;
+    if (!outLayer) return;
 
     const groups = collectGroups(inEl);
     setEnterState(groups);
-    const outEl = outgoingRef.current;
     gsap.set(inEl, { pointerEvents: 'none' });
+    const outEl = layerEls.current.get(outLayer.loc.key);
+    const gen = ++animGen.current;
 
-    const tl = gsap.timeline({
-      onComplete: () => {
-        gsap.set(groups, { clearProps: 'transform' });
-        gsap.set(inEl, { pointerEvents: 'auto' });
-        setOutgoing(null);
-        runningRef.current = false;
-        const queued = queueRef.current;
-        if (queued && queued.key !== incomingLocRef.current.key) {
-          queueRef.current = null;
-          runningRef.current = true;
-          setOutgoing(incomingLocRef.current);
-          setIncoming(queued);
-        }
-      },
-    });
+    const finish = () => {
+      if (gen !== animGen.current) return;
+      gsap.set(groups, { clearProps: 'transform' });
+      gsap.set(inEl, { pointerEvents: 'auto' });
+      runningRef.current = false;
+      notifyPageEnter(enterLoc);
+      setLayers((prev) => prev.filter((layer) => layer.phase !== 'out'));
+    };
+
+    const tl = gsap.timeline({ onComplete: finish });
 
     if (outEl) {
+      gsap.set(outEl, { opacity: 1 });
       tl.to(outEl, { opacity: 0, duration: 0.3, ease: 'power1.out' }, 0);
     }
     tl.to(
@@ -134,20 +141,30 @@ export function PageTransition({ render }: PageTransitionProps) {
     );
 
     return () => {
+      animGen.current += 1;
       tl.kill();
+      runningRef.current = false;
     };
-  }, [incoming, outgoing]);
+  }, [layers]);
+
+  const transitioning = layers.some((layer) => layer.phase === 'out');
 
   return (
     <div className="page-stage">
-      {outgoing ? (
-        <div className="page-layer page-layer--out" ref={outgoingRef}>
-          {render(outgoing)}
+      {layers.map((layer) => (
+        <div
+          key={layer.loc.key}
+          className={`page-layer${
+            layer.phase === 'out' ? ' page-layer--out' : transitioning ? ' page-layer--in' : ''
+          }`}
+          ref={(node) => {
+            if (node) layerEls.current.set(layer.loc.key, node);
+            else layerEls.current.delete(layer.loc.key);
+          }}
+        >
+          {render(layer.loc)}
         </div>
-      ) : null}
-      <div className={`page-layer${outgoing ? ' page-layer--in' : ''}`} ref={incomingRef}>
-        {render(incoming)}
-      </div>
+      ))}
     </div>
   );
 }

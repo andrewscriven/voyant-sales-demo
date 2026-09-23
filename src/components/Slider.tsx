@@ -1,9 +1,9 @@
-import { useLayoutEffect, useRef, type ReactNode } from 'react';
+import { Children, useLayoutEffect, useRef, type ReactNode } from 'react';
 import { animateDirectionalIn } from '../lib/animateIn';
 
 interface SliderProps {
   index: number;
-  count: number;
+  count?: number;
   onChange: (index: number) => void;
   children: ReactNode;
 }
@@ -33,15 +33,30 @@ export function Slider({ index, count, onChange, children }: SliderProps) {
     animateDirectionalIn(paneRef.current, direction);
   }, [index]);
 
+  const slides = Children.toArray(children);
+  const total = Math.max(count ?? 0, slides.length, 1);
+
   const stage = (
     <div className="slider-stage">
-      <div className="slider-pane" ref={paneRef}>
-        {children}
+      <div className="slider-pane slider-stack">
+        {slides.map((slide, i) => {
+          const active = slides.length === 1 || i === index;
+          return (
+            <div
+              key={i}
+              className={`slider-slide${active ? ' is-active' : ''}`}
+              ref={active ? paneRef : undefined}
+              aria-hidden={!active}
+            >
+              {slide}
+            </div>
+          );
+        })}
       </div>
     </div>
   );
 
-  if (count <= 1) {
+  if (total <= 1) {
     return <div className="slider">{stage}</div>;
   }
 
@@ -61,13 +76,13 @@ export function Slider({ index, count, onChange, children }: SliderProps) {
         type="button"
         className="slider-nav slider-next"
         aria-label="Next"
-        disabled={index >= count - 1}
+        disabled={index >= total - 1}
         onClick={() => onChange(index + 1)}
       >
         <Chevron />
       </button>
       <div className="slider-dots">
-        {Array.from({ length: count }, (_, i) => (
+        {Array.from({ length: total }, (_, i) => (
           <button
             key={i}
             type="button"

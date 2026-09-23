@@ -1,7 +1,13 @@
+import { useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { PageChrome } from '../components/PageChrome';
 import { ANALYTICS_DEMO, localMedia, openWebLink } from '../config/site';
 import './pages.css';
+
+const GLOW_HOLD_MS = 3000;
+const GLOW_PULSE_MS = 1500;
+const GLOW_STAGGER_MS = 250;
+const GLOW_LOOP_GAP_MS = 5000;
 
 const COLUMNS: {
   title: string;
@@ -25,7 +31,7 @@ const COLUMNS: {
     ],
   },
   {
-    title: 'User Management',
+    title: 'Scalable Deployment',
     body: 'Provide secure access to your interactive sales demo with easy-to-use controls',
     icon: localMedia('/images/.2026/icon-pillar-scalable.png'),
     links: [{ label: 'Learn More', path: '/user-management' }],
@@ -43,9 +49,54 @@ const COLUMNS: {
 
 export function Platform() {
   const navigate = useNavigate();
+  const pageRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const page = pageRef.current;
+    if (!page) return;
+
+    const icons = Array.from(page.querySelectorAll<HTMLElement>('.platform-icon'));
+    const timeouts: number[] = [];
+    const later = (ms: number, fn: () => void) => {
+      timeouts.push(window.setTimeout(fn, ms));
+    };
+
+    const pulseSequence = () => {
+      icons.forEach((icon, index) => {
+        later(index * GLOW_STAGGER_MS, () => {
+          icon.classList.remove('is-pulsing');
+          void icon.offsetWidth;
+          icon.classList.add('is-pulsing');
+        });
+      });
+      const sequenceMs = (icons.length - 1) * GLOW_STAGGER_MS + GLOW_PULSE_MS;
+      later(sequenceMs + GLOW_LOOP_GAP_MS, pulseSequence);
+    };
+
+    let started = false;
+    const startAfterHold = () => {
+      if (started) return;
+      started = true;
+      later(GLOW_HOLD_MS, pulseSequence);
+    };
+
+    const onEnter = (event: Event) => {
+      const path = (event as CustomEvent<{ path?: string }>).detail?.path;
+      if (path && path !== '/platform') return;
+      startAfterHold();
+    };
+
+    window.addEventListener('page-enter-complete', onEnter);
+    later(1000, startAfterHold);
+    return () => {
+      window.removeEventListener('page-enter-complete', onEnter);
+      timeouts.forEach((id) => window.clearTimeout(id));
+      icons.forEach((icon) => icon.classList.remove('is-pulsing'));
+    };
+  }, []);
 
   return (
-    <div className="page page-platform">
+    <div className="page page-platform" ref={pageRef}>
       <PageChrome banner={null}>
         <div className="platform-head">
           <h1 className="platform-title">Immersive Selling Platform</h1>

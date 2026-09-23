@@ -3,7 +3,7 @@ import { localMedia } from './site';
 export const EXAMPLE_TABS = [
   { id: 'tours', label: '3D Solution Tours' },
   { id: 'case-studies', label: 'Case Studies' },
-  { id: 'assessments', label: 'Maturity Assessments & Value Calculators' },
+  { id: 'assessments', label: 'Calculators & Assessments' },
   { id: 'vr', label: 'Virtual Reality' },
 ] as const;
 
@@ -30,7 +30,7 @@ export const EXAMPLE_CARDS: ExampleCard[] = [
   { id: 'onshore-wind', tab: 'tours', page: 1, brand: 'GE', industry: 'Power', image: guide('image38.png') },
   { id: 'ge-additive', tab: 'tours', page: 1, brand: 'GE', industry: 'Additive Manufacturing', image: guide('image36.jpeg') },
   { id: 'healthcare-analytics', tab: 'tours', page: 1, brand: 'GE', industry: 'Healthcare Digital', image: guide('image39.png') },
-  { id: 'gsixtream', tab: 'tours', page: 1, brand: 'GE', industry: 'Healthcare', image: guide('image37.png') },
+  { id: 'reservoir', tab: 'tours', page: 1, brand: 'GE', industry: 'Reservoir Solutions', image: localMedia('/images/.2026/examples/ge-reservoir.png') },
   { id: 'emerson-mining', tab: 'case-studies', page: 0, brand: 'Emerson', industry: 'Mining', image: guide('image41.png') },
   { id: 'ap1000', tab: 'case-studies', page: 0, brand: 'Westinghouse', industry: 'Nuclear', image: guide('image42.png') },
   { id: 'emerson-sd', tab: 'case-studies', page: 0, brand: 'Emerson', industry: 'Sustainability', image: guide('image40.png') },
@@ -39,7 +39,7 @@ export const EXAMPLE_CARDS: ExampleCard[] = [
   { id: 'biosave-calc', tab: 'assessments', page: 0, brand: 'Cytiva', industry: 'Life Sciences', image: guide('image48.png') },
   { id: 'cytiva-figurate', tab: 'assessments', page: 0, brand: 'Cytiva', industry: 'Life Sciences', image: guide('image49.png') },
   { id: 'greengas', tab: 'assessments', page: 0, brand: 'GE', industry: 'Power', image: guide('image50.png') },
-  { id: 'reservoir', tab: 'assessments', page: 0, brand: 'GE', industry: 'Power', image: guide('image47.png') },
+  { id: 'ge-multilin', tab: 'assessments', page: 0, brand: 'GE', industry: 'Grid Solutions', image: localMedia('/images/selector-guide.jpg') },
   { id: 'statcom', tab: 'assessments', page: 0, brand: 'GE', industry: 'Power', image: guide('image51.png') },
   { id: 'vr-grid-mod', tab: 'vr', page: 0, brand: 'GE', industry: 'Grid Systems', image: guide('image55.png') },
   { id: 'vr-underground', tab: 'vr', page: 0, brand: 'GE', industry: 'Distribution', image: guide('image54.png') },

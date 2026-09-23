@@ -17,7 +17,7 @@ const CLOUDFRONT_ID = process.env.VOYANT_DOWNLOADS_CLOUDFRONT_DISTRIBUTION_ID ||
 const args = process.argv.slice(2);
 const shouldUpload = args.includes('--upload');
 const isLocal = args.includes('--local');
-const skipSign = args.includes('--skip-sign') || process.env.SKIP_SIGNING === 'true';
+const skipSign = args.includes('--skip-sign');
 
 function run(command, commandArgs, label, options = {}) {
   return new Promise((resolve, reject) => {
@@ -63,7 +63,7 @@ async function main() {
   const pkg = JSON.parse(fs.readFileSync(path.join(ROOT, 'package.json'), 'utf8'));
   const version = pkg.version;
   const workDir = path.join(ROOT, 'release-msi', version);
-  const outputDir = path.join(workDir, 'builder');
+  const outputDir = path.join(workDir, 'out');
   fs.mkdirSync(workDir, { recursive: true });
 
   if (!fs.existsSync(path.join(ROOT, 'public', 'icon.ico'))) {
@@ -72,10 +72,12 @@ async function main() {
 
   await run('npm', ['run', 'build:web'], 'Build web bundle');
 
-  const env = {
-    ...process.env,
-    ...(skipSign ? { SKIP_SIGNING: 'true' } : {}),
-  };
+  const env = { ...process.env };
+  if (skipSign) {
+    env.SKIP_SIGNING = 'true';
+  } else {
+    delete env.SKIP_SIGNING;
+  }
 
   await run(
     'npx',
@@ -167,7 +169,7 @@ async function main() {
       `"${path.join(workDir, 'index.html')}"`,
       `"${S3_BUCKET}/downloads/voyant-sales-demo.html"`,
       '--content-type',
-      'text/html; charset=utf-8',
+      '"text/html; charset=utf-8"',
       '--cache-control',
       '"no-cache, max-age=0"',
       '--no-cli-pager',
