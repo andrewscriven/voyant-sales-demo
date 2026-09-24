@@ -4,6 +4,49 @@ const path = require('path');
 const catalog = require('../shared/demos.json');
 const launchLog = require('./launch-log.cjs');
 const diagnose = require('./diagnose-exe.cjs');
+const winHelper = require('./win-helper.cjs');
+
+const SNAPSHOT_CACHE_MS = 600;
+let cachedSnapshot = null;
+let cachedAt = 0;
+
+let snapshotUserDataPath = null;
+
+async function getSnapshot(force = false) {
+  if (!force && cachedSnapshot && Date.now() - cachedAt < SNAPSHOT_CACHE_MS) {
+    return cachedSnapshot;
+  }
+  try {
+    const snapshot = await winHelper.snapshot();
+    cachedSnapshot = snapshot;
+    cachedAt = Date.now();
+    return snapshot;
+  } catch (err) {
+    // A dead or wedged worker returns nothing, which otherwise reads as "no demo
+    // is running" and triggers a duplicate launch. Record it so the log can tell
+    // the two cases apart.
+    launchLog.appendLaunchLog(snapshotUserDataPath, {
+      event: 'snapshot-error',
+      error: String((err && err.message) || err),
+    });
+    throw err;
+  }
+}
+
+function samePath(a, b) {
+  if (!a || !b) return false;
+  return path.normalize(a).toLowerCase() === path.normalize(b).toLowerCase();
+}
+
+// Electron demos run several processes off one EXE and only one of them owns the
+// window, so match on the EXE path rather than a single PID.
+function windowsForPath(snapshot, exePath) {
+  return snapshot.windows.filter((win) => samePath(win.path, exePath));
+}
+
+function processesForPath(snapshot, exePath) {
+  return snapshot.processes.filter((proc) => samePath(proc.path, exePath));
+}
 
 function runPs(script) {
   return new Promise((resolve, reject) => {
@@ -77,27 +120,42 @@ async function findProcessesByPath(exePath) {
   return Array.isArray(parsed) ? parsed : [parsed];
 }
 
-async function focusPid(pid) {
+async function focusPids(pids) {
+  const idList = [...new Set(pids.map((id) => Number(id)).filter((id) => Number.isFinite(id)))];
+  if (idList.length === 0) throw new Error('No process ids');
   const script = `
     Add-Type @"
 using System;
 using System.Runtime.InteropServices;
 public static class VoyantWin {
+  public delegate bool EnumWindowsProc(IntPtr hWnd, IntPtr lParam);
+  [DllImport("user32.dll")] public static extern bool EnumWindows(EnumWindowsProc lpEnumFunc, IntPtr lParam);
+  [DllImport("user32.dll")] public static extern bool IsWindowVisible(IntPtr hWnd);
+  [DllImport("user32.dll")] public static extern uint GetWindowThreadProcessId(IntPtr hWnd, out uint lpdwProcessId);
   [DllImport("user32.dll")] public static extern bool ShowWindow(IntPtr hWnd, int nCmdShow);
   [DllImport("user32.dll")] public static extern bool SetForegroundWindow(IntPtr hWnd);
   [DllImport("user32.dll")] public static extern bool IsIconic(IntPtr hWnd);
   [DllImport("user32.dll")] public static extern bool AllowSetForegroundWindow(int dwProcessId);
 }
 "@
-    $p = Get-Process -Id ${Number(pid)} -ErrorAction SilentlyContinue
-    if (-not $p) { throw 'Process is not running' }
-    $h = $p.MainWindowHandle
-    if ($h -eq [IntPtr]::Zero) { throw 'Process has no main window' }
+    $want = @(${idList.join(',')})
+    $found = New-Object System.Collections.Generic.List[IntPtr]
+    $cb = [VoyantWin+EnumWindowsProc]{
+      param($hWnd, $lParam)
+      if (-not [VoyantWin]::IsWindowVisible($hWnd)) { return $true }
+      $procId = [uint32]0
+      [void][VoyantWin]::GetWindowThreadProcessId($hWnd, [ref]$procId)
+      if ($want -contains [int]$procId) { $found.Add($hWnd) }
+      return $true
+    }
+    [VoyantWin]::EnumWindows($cb, [IntPtr]::Zero) | Out-Null
+    if ($found.Count -eq 0) { throw 'No visible window for process' }
+    $h = $found[0]
     [VoyantWin]::AllowSetForegroundWindow(-1) | Out-Null
     if ([VoyantWin]::IsIconic($h)) { [VoyantWin]::ShowWindow($h, 9) | Out-Null }
     else { [VoyantWin]::ShowWindow($h, 5) | Out-Null }
     [VoyantWin]::SetForegroundWindow($h) | Out-Null
-    'ok'
+    "ok:$($found.Count)"
   `;
   await runPs(script);
 }
@@ -172,33 +230,113 @@ function spawnDemo(exePath) {
   });
 }
 
-async function listManaged(userDataPath) {
+async function listManaged(userDataPath, options = {}) {
+  snapshotUserDataPath = userDataPath;
   const overrides = loadOverrides(userDataPath);
-  const items = [];
-  for (const demo of catalog.demos) {
+  let snapshot = { windows: [], processes: [] };
+  try {
+    snapshot = await getSnapshot(options.force === true);
+  } catch {
+    snapshot = { windows: [], processes: [] };
+  }
+  return catalog.demos.map((demo) => {
     const resolved = resolveDemo(demo, overrides);
-    let running = [];
-    if (resolved.kind === 'exe' && resolved.exists) {
-      try {
-        running = await findProcessesByPath(resolved.resolvedPath);
-      } catch {
-        running = [];
-      }
-    }
-    items.push({
+    const isExe = resolved.kind === 'exe' && resolved.exists;
+    const procs = isExe ? processesForPath(snapshot, resolved.resolvedPath) : [];
+    const wins = isExe ? windowsForPath(snapshot, resolved.resolvedPath) : [];
+    return {
       id: demo.id,
       label: demo.label,
       category: demo.category,
       kind: demo.kind,
       path: resolved.resolvedPath,
       exists: resolved.exists,
-      running: running.map((proc) => ({
-        pid: proc.ProcessId,
-        name: proc.Name,
-      })),
-    });
+      running: procs.map((proc) => ({ pid: proc.pid, name: path.basename(proc.path || '') })),
+      // A process without a window is still starting up, which is the only case
+      // where the launching overlay should stay on screen.
+      hasWindow: wins.length > 0,
+    };
+  });
+}
+
+async function switchToDemo(userDataPath, demoId) {
+  snapshotUserDataPath = userDataPath;
+  const demo = catalog.demos.find((item) => item.id === demoId);
+  if (!demo || demo.kind !== 'exe') {
+    return { ok: false, reason: 'not-exe', id: demoId };
   }
-  return items;
+  const resolved = resolveDemo(demo, loadOverrides(userDataPath));
+  if (!resolved.exists) {
+    return { ok: false, reason: 'missing', id: demo.id, path: resolved.resolvedPath };
+  }
+
+  const snapshot = await getSnapshot(true);
+  const wins = windowsForPath(snapshot, resolved.resolvedPath);
+  const procs = processesForPath(snapshot, resolved.resolvedPath);
+  launchLog.appendLaunchLog(userDataPath, {
+    event: 'switch-probe',
+    id: demo.id,
+    path: resolved.resolvedPath,
+    snapshotMs: snapshot.elapsedMs,
+    processCount: procs.length,
+    windowCount: wins.length,
+    // Totals for the whole machine: if these are 0 the worker is broken, not the demo.
+    snapshotWindows: snapshot.windows.length,
+    snapshotProcesses: snapshot.processes.length,
+    windows: wins.map((win) => ({ hwnd: win.hwnd, pid: win.pid, title: win.title })),
+  });
+
+  if (wins.length === 0) {
+    const reason = procs.length > 0 ? 'starting' : 'not-running';
+    launchLog.appendLaunchLog(userDataPath, {
+      event: 'switch-no-window',
+      id: demo.id,
+      reason,
+      processCount: procs.length,
+    });
+    return { ok: false, reason, id: demo.id, path: resolved.resolvedPath, processCount: procs.length };
+  }
+
+  const target = wins[0];
+  let raised;
+  try {
+    raised = await winHelper.raise(target.hwnd);
+  } catch (err) {
+    launchLog.appendLaunchLog(userDataPath, {
+      event: 'switch-error',
+      id: demo.id,
+      hwnd: target.hwnd,
+      error: err.message,
+    });
+    return { ok: false, reason: 'raise-failed', id: demo.id, error: err.message };
+  }
+
+  launchLog.appendLaunchLog(userDataPath, {
+    event: 'switch-result',
+    id: demo.id,
+    hwnd: target.hwnd,
+    pid: target.pid,
+    title: target.title,
+    method: raised.method,
+    ok: raised.ok === true,
+    foregroundBefore: raised.before,
+    foregroundAfter: raised.after,
+    hitTarget: String(raised.after) === String(target.hwnd),
+    raiseMs: raised.elapsedMs,
+  });
+
+  if (raised.ok !== true) {
+    return { ok: false, reason: 'raise-refused', id: demo.id, method: raised.method, hwnd: target.hwnd };
+  }
+  cachedSnapshot = null;
+  return {
+    ok: true,
+    action: 'focused',
+    id: demo.id,
+    pid: target.pid,
+    hwnd: target.hwnd,
+    method: raised.method,
+  };
 }
 
 async function launchDemo(userDataPath, demoId) {
@@ -215,8 +353,6 @@ async function launchDemo(userDataPath, demoId) {
 
   const overrides = loadOverrides(userDataPath);
   const resolved = resolveDemo(demo, overrides);
-  const fileProbe = diagnose.probeFile(resolved.resolvedPath);
-  const winProbe = await diagnose.probeWindows(resolved.resolvedPath);
   launchLog.appendLaunchLog(userDataPath, {
     event: 'launch-resolve',
     id: demo.id,
@@ -224,8 +360,6 @@ async function launchDemo(userDataPath, demoId) {
     resolvedPath: resolved.resolvedPath,
     exists: resolved.exists,
     overridden: Boolean(overrides[demo.id]),
-    fileProbe,
-    winProbe,
   });
   if (!resolved.exists) {
     launchLog.appendLaunchLog(userDataPath, {
@@ -236,97 +370,51 @@ async function launchDemo(userDataPath, demoId) {
     return { ok: false, reason: 'missing', id: demo.id, path: resolved.resolvedPath };
   }
 
-  const running = await findProcessesByPath(resolved.resolvedPath);
-  if (running.length > 0) {
-    const pid = running[0].ProcessId;
-    try {
-      await focusPid(pid);
-      launchLog.appendLaunchLog(userDataPath, {
-        event: 'launch-focused',
-        id: demo.id,
-        pid,
-        path: resolved.resolvedPath,
-      });
-      return { ok: true, action: 'focused', id: demo.id, pid, path: resolved.resolvedPath };
-    } catch (err) {
-      launchLog.appendLaunchLog(userDataPath, {
-        event: 'launch-focus-failed',
-        id: demo.id,
-        pid,
-        error: err.message,
-      });
-      return { ok: false, reason: 'focus-failed', id: demo.id, pid, error: err.message };
-    }
-  }
+  launchLog.appendLaunchLog(userDataPath, {
+    event: 'launch-open',
+    id: demo.id,
+    path: resolved.resolvedPath,
+  });
 
-  launchLog.appendLaunchLog(userDataPath, {
-    event: 'launch-spawn',
-    id: demo.id,
-    path: resolved.resolvedPath,
-  });
-  const spawned = await spawnDemo(resolved.resolvedPath);
-  launchLog.appendLaunchLog(userDataPath, {
-    event: spawned.stillRunning ? 'launch-running' : 'launch-exited',
-    id: demo.id,
-    path: resolved.resolvedPath,
-    ...spawned,
-  });
   setTimeout(() => {
     void (async () => {
-      const later = await diagnose.findProcesses(resolved.resolvedPath);
+      const snapshot = await getSnapshot(true).catch(() => ({ windows: [], processes: [] }));
       const errors = await diagnose.recentAppErrors(path.basename(resolved.resolvedPath));
+      const wins = windowsForPath(snapshot, resolved.resolvedPath);
+      const procs = processesForPath(snapshot, resolved.resolvedPath);
       launchLog.appendLaunchLog(userDataPath, {
         event: 'launch-followup-5s',
         id: demo.id,
         path: resolved.resolvedPath,
-        pid: spawned.pid,
-        pidAlive: diagnose.pidAlive(spawned.pid),
-        processes: later,
+        processCount: procs.length,
+        windowCount: wins.length,
+        snapshotWindows: snapshot.windows.length,
+        snapshotProcesses: snapshot.processes.length,
+        windows: wins.map((win) => ({ hwnd: win.hwnd, pid: win.pid, title: win.title })),
         appErrors: errors,
       });
       void launchLog.uploadLaunchLogs(
         userDataPath,
         'launch-followup',
-        { demoId: demo.id, path: resolved.resolvedPath, pid: spawned.pid, processes: later, appErrors: errors },
+        {
+          demoId: demo.id,
+          path: resolved.resolvedPath,
+          processCount: procs.length,
+          windowCount: wins.length,
+          appErrors: errors,
+        },
         null,
       );
     })();
   }, 5000);
-  if (spawned.spawnError) {
-    return {
-      ok: false,
-      reason: 'spawn-failed',
-      id: demo.id,
-      pid: spawned.pid,
-      path: resolved.resolvedPath,
-      error: spawned.spawnError.message || spawned.spawnError,
-      stillRunning: false,
-    };
-  }
-  return {
-    ok: spawned.stillRunning,
-    action: 'launched',
-    id: demo.id,
-    pid: spawned.pid,
-    path: resolved.resolvedPath,
-    stillRunning: spawned.stillRunning,
-    reason: spawned.stillRunning ? undefined : 'exited',
-  };
-}
 
-async function focusDemo(userDataPath, demoId) {
-  const demo = catalog.demos.find((item) => item.id === demoId);
-  if (!demo || demo.kind !== 'exe') {
-    return { ok: false, reason: 'not-exe', id: demoId };
-  }
-  const resolved = resolveDemo(demo, loadOverrides(userDataPath));
-  const running = resolved.exists ? await findProcessesByPath(resolved.resolvedPath) : [];
-  if (running.length === 0) {
-    return { ok: false, reason: 'not-running', id: demo.id };
-  }
-  const pid = running[0].ProcessId;
-  await focusPid(pid);
-  return { ok: true, action: 'focused', id: demo.id, pid };
+  return {
+    ok: true,
+    action: 'launched',
+    kind: 'exe',
+    id: demo.id,
+    path: resolved.resolvedPath,
+  };
 }
 
 async function quitDemo(userDataPath, demoId) {
@@ -335,13 +423,15 @@ async function quitDemo(userDataPath, demoId) {
     return { ok: false, reason: 'not-exe', id: demoId };
   }
   const resolved = resolveDemo(demo, loadOverrides(userDataPath));
-  const running = resolved.exists ? await findProcessesByPath(resolved.resolvedPath) : [];
-  if (running.length === 0) {
+  const snapshot = await getSnapshot(true);
+  const procs = resolved.exists ? processesForPath(snapshot, resolved.resolvedPath) : [];
+  if (procs.length === 0) {
     return { ok: true, action: 'already-stopped', id: demo.id };
   }
-  const pids = running.map((proc) => proc.ProcessId).join(',');
-  await runPs(`Get-Process -Id ${pids} -ErrorAction SilentlyContinue | Stop-Process`);
-  return { ok: true, action: 'stopped', id: demo.id, pids: running.map((proc) => proc.ProcessId) };
+  const pids = procs.map((proc) => proc.pid);
+  await runPs(`Get-Process -Id ${pids.join(',')} -ErrorAction SilentlyContinue | Stop-Process`);
+  cachedSnapshot = null;
+  return { ok: true, action: 'stopped', id: demo.id, pids };
 }
 
 function getResolvedDemo(userDataPath, demoId) {
@@ -371,7 +461,9 @@ module.exports = {
   getResolvedDemo,
   listManaged,
   launchDemo,
-  focusDemo,
+  switchToDemo,
   quitDemo,
   setDemoPath,
+  warmHelper: winHelper.warm,
+  stopHelper: winHelper.stop,
 };

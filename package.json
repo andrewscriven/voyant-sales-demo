@@ -1,6 +1,6 @@
 {
   "name": "voyant-sales-demo",
-  "version": "1.0.10",
+  "version": "1.0.11",
   "description": "Voyant Studios sales demo hub",
   "author": "Voyant Studios",
   "repository": {
@@ -82,6 +82,6 @@
       "perMachine": true,
       "runAfterFinish": true
     },
-    "buildVersion": "1.0.10"
+    "buildVersion": "1.0.11"
   }
 }

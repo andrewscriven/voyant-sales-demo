@@ -12,41 +12,46 @@ import './pages.css';
 
 type TabId = (typeof EXAMPLE_TABS)[number]['id'];
 
-function ExamplePanel({
-  card,
-  busy,
-  onLaunch,
-}: {
-  card: ExampleCard;
-  busy: boolean;
-  onLaunch: () => void;
-}) {
-  const [launching, setLaunching] = useState(false);
+const OVERLAY_DELAY_MS = 500;
+const OVERLAY_HOLD_MS = 5000;
 
-  useEffect(() => {
-    if (busy) setLaunching(true);
-  }, [busy]);
+function ExamplePanel({ card, onActivate }: { card: ExampleCard; onActivate: () => void }) {
+  const [overlay, setOverlay] = useState<'hidden' | 'visible' | 'leaving'>('hidden');
+  const timersRef = useRef<number[]>([]);
 
-  useEffect(() => {
-    if (!launching || busy) return;
-    const timer = window.setTimeout(() => setLaunching(false), 1400);
-    return () => window.clearTimeout(timer);
-  }, [launching, busy]);
+  const clearTimers = () => {
+    timersRef.current.forEach((id) => window.clearTimeout(id));
+    timersRef.current = [];
+  };
+
+  useEffect(() => clearTimers, []);
+
+  // Purely time-based: every click waits 500ms, shows for 5s, then fades.
+  const handleClick = () => {
+    clearTimers();
+    setOverlay('hidden');
+    timersRef.current.push(
+      window.setTimeout(() => setOverlay('visible'), OVERLAY_DELAY_MS),
+      window.setTimeout(() => setOverlay('leaving'), OVERLAY_DELAY_MS + OVERLAY_HOLD_MS),
+      window.setTimeout(() => setOverlay('hidden'), OVERLAY_DELAY_MS + OVERLAY_HOLD_MS + 300),
+    );
+    onActivate();
+  };
 
   return (
     <button
       type="button"
-      className={`example-card${launching || busy ? ' is-launching' : ''}`}
-      disabled={busy}
-      onClick={() => {
-        setLaunching(true);
-        onLaunch();
-      }}
+      className={`example-card${overlay !== 'hidden' ? ' is-launching' : ''}`}
+      onClick={handleClick}
     >
       <span className="example-thumb">
         <span className="example-shot">
           <img src={card.image} alt={card.brand} />
-          {(launching || busy) && <span className="example-launching">Launching…</span>}
+          {overlay !== 'hidden' && (
+            <span className={`example-launching${overlay === 'leaving' ? ' is-leaving' : ''}`}>
+              Launching…
+            </span>
+          )}
         </span>
       </span>
       <span className="example-brand">
@@ -108,12 +113,12 @@ function tabFromSearch(value: string | null): TabId {
 export function Examples() {
   const {
     busyId,
+    activate,
     prompt,
     message,
     closePrompt,
     browsePromptPath,
     launchFromPrompt,
-    launch,
   } = useDemos();
   const { tab: tabParam } = useParams();
   const requestedTab = tabFromSearch(tabParam ?? null);
@@ -157,8 +162,7 @@ export function Examples() {
                                 <ExamplePanel
                                   key={card.id}
                                   card={card}
-                                  busy={busyId === card.id}
-                                  onLaunch={() => void launch(card.id)}
+                                  onActivate={() => void activate(card.id)}
                                 />
                             ))}
                           </div>

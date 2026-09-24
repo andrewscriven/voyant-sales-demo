@@ -15,6 +15,27 @@ function userDataPath() {
   return app.getPath('userData');
 }
 
+// Demos are Electron apps that read these to decide dev vs packaged. ShellExecute
+// hands our environment to the child, so a demo would load our Vite server.
+const INHERITED_DEV_KEYS = ['NODE_ENV', 'VITE_DEV_SERVER_URL'];
+
+async function openDemoExe(exePath) {
+  const saved = new Map();
+  for (const key of Object.keys(process.env)) {
+    if (INHERITED_DEV_KEYS.includes(key) || key.startsWith('VITE_') || key.startsWith('ELECTRON_')) {
+      saved.set(key, process.env[key]);
+      delete process.env[key];
+    }
+  }
+  try {
+    await shell.openExternal(exePath.replace(/\\/g, '/'));
+  } finally {
+    for (const [key, value] of saved) {
+      process.env[key] = value;
+    }
+  }
+}
+
 function appIcon() {
   const packed = path.join(__dirname, '../web-dist/icon.ico');
   const loose = path.join(__dirname, '../public/icon.ico');
@@ -79,12 +100,53 @@ app.whenReady().then(() => {
 
   ipcMain.handle('get-app-version', () => app.getVersion());
   ipcMain.handle('get-catalog', () => processManager.getCatalog());
-  ipcMain.handle('list-demos', () => processManager.listManaged(userDataPath()));
+  ipcMain.handle('list-demos', (_event, options) => processManager.listManaged(userDataPath(), options || {}));
+  ipcMain.handle('switch-demo', async (_event, demoId) => {
+    const started = Date.now();
+    launchLog.appendLaunchLog(userDataPath(), { event: 'ipc-switch-demo', id: demoId });
+    const result = await processManager.switchToDemo(userDataPath(), demoId);
+    launchLog.appendLaunchLog(userDataPath(), {
+      event: 'ipc-switch-done',
+      id: demoId,
+      ok: result.ok,
+      reason: result.reason || null,
+      method: result.method || null,
+      totalMs: Date.now() - started,
+    });
+    return result;
+  });
   ipcMain.handle('launch-demo', async (_event, demoId) => {
     launchLog.appendLaunchLog(userDataPath(), { event: 'ipc-launch-demo', id: demoId });
     const result = await processManager.launchDemo(userDataPath(), demoId);
     if (result.ok && result.kind === 'url' && result.url) {
       await shell.openExternal(result.url);
+    }
+    if (result.ok && result.kind === 'exe' && result.path) {
+      const openedAt = Date.now();
+      try {
+        await openDemoExe(result.path);
+        launchLog.appendLaunchLog(userDataPath(), {
+          event: 'launch-shell-open-done',
+          id: demoId,
+          openMs: Date.now() - openedAt,
+        });
+      } catch (err) {
+        const failed = {
+          ok: false,
+          reason: 'spawn-failed',
+          id: demoId,
+          path: result.path,
+          error: err instanceof Error ? err.message : String(err),
+        };
+        launchLog.appendLaunchLog(userDataPath(), { event: 'launch-open-error', ...failed });
+        void launchLog.uploadLaunchLogs(
+          userDataPath(),
+          'launch-failed',
+          { demoId, result: failed, showedPicker: false },
+          app.getVersion(),
+        );
+        return failed;
+      }
     }
     void launchLog.uploadLaunchLogs(
       userDataPath(),
@@ -94,7 +156,7 @@ app.whenReady().then(() => {
     );
     return result;
   });
-  ipcMain.handle('focus-demo', (_event, demoId) => processManager.focusDemo(userDataPath(), demoId));
+  ipcMain.handle('focus-demo', (_event, demoId) => processManager.switchToDemo(userDataPath(), demoId));
   ipcMain.handle('quit-demo', (_event, demoId) => processManager.quitDemo(userDataPath(), demoId));
   ipcMain.handle('set-demo-path', (_event, demoId, nextPath) =>
     processManager.setDemoPath(userDataPath(), demoId, nextPath)
@@ -169,6 +231,7 @@ app.whenReady().then(() => {
     event: 'app-ready',
     version: app.getVersion(),
   });
+  void processManager.warmHelper();
   void launchLog.uploadLaunchLogs(
     userDataPath(),
     'session-start',
@@ -181,4 +244,8 @@ app.whenReady().then(() => {
 
 app.on('window-all-closed', () => {
   app.quit();
+});
+
+app.on('before-quit', () => {
+  processManager.stopHelper();
 });

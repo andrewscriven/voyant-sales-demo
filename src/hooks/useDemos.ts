@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import type { LaunchPrompt } from '../components/LaunchModal';
 import type { DemoStatus, LaunchResult } from '../types/electron';
 import { catalog } from '../config/catalog';
@@ -6,6 +6,25 @@ import { captureLog } from '../services/diagnostic-logger';
 import { uploadLogs } from '../services/log-uploader';
 
 const STORAGE_KEY = 'voyant-demo-paths';
+const WINDOW_POLL_MS = 400;
+const WINDOW_WAIT_MS = 25_000;
+
+// Watches for the demo's window (not just its process) so the launching overlay
+// clears at the moment the app is actually on screen.
+async function waitForWindow(id: string, onOpen: () => void) {
+  if (!window.electronAPI) return;
+  const started = Date.now();
+  while (Date.now() - started < WINDOW_WAIT_MS) {
+    await new Promise((resolve) => window.setTimeout(resolve, WINDOW_POLL_MS));
+    const items = await window.electronAPI.listDemos({ force: true });
+    const item = items.find((demo) => demo.id === id);
+    if (item?.hasWindow) {
+      onOpen();
+      return;
+    }
+  }
+  onOpen();
+}
 
 function loadBrowserOverrides(): Record<string, string> {
   try {
@@ -43,8 +62,10 @@ function catalogDemos(): DemoStatus[] {
 export function useDemos() {
   const [demos, setDemos] = useState<DemoStatus[]>(() => catalogDemos());
   const [busyId, setBusyId] = useState<string | null>(null);
+  const [openingId, setOpeningId] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [prompt, setPrompt] = useState<LaunchPrompt | null>(null);
+  const launchRef = useRef<(id: string) => Promise<unknown>>(async () => undefined);
 
   const refresh = useCallback(async () => {
     if (!window.electronAPI) {
@@ -94,10 +115,37 @@ export function useDemos() {
     });
   };
 
+  // Switching to a window the user can already see must never be gated on a
+  // launch, so this runs before anything slow and returns as soon as it wins.
+  const activate = useCallback(async (id: string): Promise<void> => {
+    const demo = demoFor(id);
+    captureLog('launch', 'card-clicked', id, demo?.path ?? '');
+    if (!window.electronAPI || demo?.kind !== 'exe') {
+      await launchRef.current(id);
+      return;
+    }
+    const switched = await window.electronAPI.switchDemo(id);
+    captureLog('launch', 'switch-result', id, switched);
+    if (switched.ok) {
+      setMessage('Brought the running app to the front.');
+      void refresh();
+      return;
+    }
+    if (switched.reason === 'starting') {
+      setMessage('That app is still opening.');
+      setOpeningId(id);
+      void waitForWindow(id, () => {
+        setOpeningId((current) => (current === id ? null : current));
+        void refresh();
+      });
+      return;
+    }
+    await launchRef.current(id);
+  }, [demoFor, refresh]);
+
   const launch = useCallback(async (id: string) => {
     setBusyId(id);
     const demo = demoFor(id);
-    captureLog('launch', 'card-clicked', id, demo?.path ?? '');
     try {
       if (!window.electronAPI) {
         if (demo?.kind === 'url' && demo.path) {
@@ -119,6 +167,13 @@ export function useDemos() {
       }
       const result = await window.electronAPI.launchDemo(id);
       captureLog('launch', 'electron-result', result);
+      if (result.ok && demo?.kind === 'exe') {
+        setOpeningId(id);
+        void waitForWindow(id, () => {
+          setOpeningId((current) => (current === id ? null : current));
+          void refresh();
+        });
+      }
       if (!result.ok && (result.reason === 'missing' || result.reason === 'unknown-demo')) {
         void uploadLogs('picker-shown', {
           demoId: id,
@@ -144,6 +199,10 @@ export function useDemos() {
       setBusyId(null);
     }
   }, [demoFor, refresh]);
+
+  useEffect(() => {
+    launchRef.current = launch;
+  }, [launch]);
 
   const browsePromptPath = useCallback(async () => {
     if (!prompt) return null;
@@ -180,6 +239,14 @@ export function useDemos() {
       await window.electronAPI.setDemoPath(prompt.id, nextPath);
       const result = await window.electronAPI.launchDemo(prompt.id);
       captureLog('launch', 'launch-from-picker', prompt.id, result);
+      if (result.ok) {
+        const id = prompt.id;
+        setOpeningId(id);
+        void waitForWindow(id, () => {
+          setOpeningId((current) => (current === id ? null : current));
+          void refresh();
+        });
+      }
       void uploadLogs(result.ok ? 'launch-from-picker' : 'launch-from-picker-failed', {
         demoId: prompt.id,
         runtime: 'electron',
@@ -228,6 +295,8 @@ export function useDemos() {
   return {
     demos,
     busyId,
+    openingId,
+    activate,
     message,
     setMessage,
     prompt,

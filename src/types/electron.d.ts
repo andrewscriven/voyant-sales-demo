@@ -11,6 +11,7 @@ export interface DemoStatus {
   path: string;
   exists: boolean;
   running: DemoProcess[];
+  hasWindow?: boolean;
 }
 
 export interface LaunchResult {
@@ -21,9 +22,12 @@ export interface LaunchResult {
   url?: string;
   path?: string;
   pid?: number;
+  hwnd?: number;
+  method?: string;
   reason?: string;
   error?: string;
   stillRunning?: boolean;
+  processCount?: number;
 }
 
 export interface ElectronAPI {
@@ -33,8 +37,9 @@ export interface ElectronAPI {
     categories: { id: string; label: string }[];
     demos: { id: string; label: string; category: string; kind: string; path?: string; url?: string }[];
   }>;
-  listDemos: () => Promise<DemoStatus[]>;
+  listDemos: (options?: { force?: boolean }) => Promise<DemoStatus[]>;
   launchDemo: (demoId: string) => Promise<LaunchResult>;
+  switchDemo: (demoId: string) => Promise<LaunchResult>;
   focusDemo: (demoId: string) => Promise<LaunchResult>;
   quitDemo: (demoId: string) => Promise<LaunchResult>;
   setDemoPath: (demoId: string, nextPath: string) => Promise<{ id: string; resolvedPath: string; exists: boolean }>;
